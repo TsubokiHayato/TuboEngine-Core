@@ -1,0 +1,6 @@
+x64/
+generated/
+*.vcxproj.user
+*.aps
+*.obj
+*.pdb

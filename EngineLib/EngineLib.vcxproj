@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{45f1ca7d-c09e-4dcf-a59d-42cb5c2e6e82}</ProjectGuid>
+    <RootNamespace>EngineLib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuation)\</OutDir>
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuation)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuation)\</OutDir>
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuation)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuation)\</OutDir>
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuation)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuation)\</OutDir>
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuation)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;USE_IMGUI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)engine\base;$(SolutionDir)engine\graphic;$(SolutionDir)engine\graphic\2d;$(SolutionDir)engine\graphic\3d;$(SolutionDir)engine\input;$(SolutionDir)engine\leakChecker;$(SolutionDir)engine\math;$(SolutionDir)engine\imgui;$(SolutionDir)engine\camera;$(SolutionDir)engine\audio;$(SolutionDir)engine\graphic\Particle;$(SolutionDir)engine\scene;$(SolutionDir)engine\base\Framework;$(SolutionDir)engine\base\Utilities;$(SolutionDir)engine\base\Common;$(SolutionDir)engine\graphic\data;$(SolutionDir)engine\graphic\PSO;$(SolutionDir)externals\assimp\include;$(SolutionDir)engine\graphic\PSO\Blend;$(SolutionDir)engine\graphic\PSO\PostEffect;$(SolutionDir)engine\graphic\PostEffect;$(SolutionDir)engine\graphic\SkyBox;$(SolutionDir)application;$(SolutionDir)application\scene;$(SolutionDir)engine\graphic\line;$(SolutionDir)engine\graphic\Animation;$(SolutionDir)externals\nlohmann</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <Optimization>MinSpace</Optimization>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)engine\base;$(SolutionDir)engine\graphic;$(SolutionDir)engine\graphic\2d;$(SolutionDir)engine\graphic\3d;$(SolutionDir)engine\input;$(SolutionDir)engine\leakChecker;$(SolutionDir)engine\math;$(SolutionDir)engine\imgui;$(SolutionDir)engine\camera;$(SolutionDir)engine\audio;$(SolutionDir)engine\graphic\Particle;$(SolutionDir)engine\scene;$(SolutionDir)engine\base\Framework;$(SolutionDir)engine\base\Utilities;$(SolutionDir)engine\base\Common;$(SolutionDir)engine\graphic\data;$(SolutionDir)engine\graphic\PSO;$(SolutionDir)externals\assimp\include;$(SolutionDir)engine\graphic\PSO\Blend;$(SolutionDir)engine\graphic\PSO\PostEffect;$(SolutionDir)engine\graphic\PostEffect;$(SolutionDir)engine\graphic\SkyBox;$(SolutionDir)application;$(SolutionDir)application\scene;$(SolutionDir)engine\graphic\line;$(SolutionDir)engine\graphic\Animation;$(SolutionDir)externals\nlohmann</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\engine\graphic\Particle\Effects\Aura\AuraEmitter.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\Effects\ClearConfetti\ClearConfettiEmitter.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\Effects\ClearFirework\ClearFireworkEmitter.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\IParticleEmitter.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\ParticleManager.cpp" />
+    <ClCompile Include="..\engine\graphic\SPH\SphSimulator.cpp" />
+    <ClCompile Include="..\engine\graphic\SPH\SphComputePipeline.cpp" />
+    <ClCompile Include="..\engine\graphic\SPH\SphFluidRenderer.cpp" />
+    <ClCompile Include="..\engine\graphic\SPH\InstancedMeshRenderer.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Bloom\BloomEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\FlickerGlow\FlickerGlowEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\Blend\BlendPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\BloomPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\DepthBasedOutline\DepthBasedOutlineEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\Animation.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\Animator.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\DissolvePSO.cpp" />
+    <ClCompile Include="..\engine\Collider\Collider.cpp" />
+    <ClCompile Include="..\engine\Collider\CollisionManager.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\FlickerGlowPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\ToonPSO.cpp" />
+    <ClCompile Include="..\engine\audio\Audio.cpp" />
+    <ClCompile Include="..\engine\audio\AudioCommon.cpp" />
+    <ClCompile Include="..\engine\camera\Camera.cpp" />
+    <ClCompile Include="..\engine\camera\DebugCamera.cpp" />
+    <ClCompile Include="..\engine\leakChecker\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="..\engine\base\Common\DirectXCommon.cpp" />
+    <ClCompile Include="..\engine\input\Input.cpp" />
+    <ClCompile Include="..\engine\base\Utilities\Logger.cpp" />
+    <ClCompile Include="..\engine\imgui\ImGuiManager.cpp" />
+    <ClCompile Include="..\engine\scene\IScene.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\GaussianBlurEffect\GaussianBlurEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\GaussianBlurPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\GrayScale\GrayScaleEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\GrayScalePSO.cpp" />
+    <ClCompile Include="..\engine\Framework\Framework.cpp" />
+    <ClCompile Include="..\engine\graphic\line\Line.cpp" />
+    <ClCompile Include="..\engine\graphic\line\LineCommon.cpp" />
+    <ClCompile Include="..\engine\graphic\line\LineManager.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\Line\LinePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\3d\Model.cpp" />
+    <ClCompile Include="..\engine\graphic\3d\ModelManager.cpp" />
+    <ClCompile Include="..\engine\graphic\3d\Object3d.cpp" />
+    <ClCompile Include="..\engine\graphic\3d\Object3dCommon.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\Sprite.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\SpriteCommon.cpp" />
+    <ClCompile Include="..\engine\base\Utilities\StringUtility.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\TextureManager.cpp" />
+    <ClCompile Include="..\engine\base\Common\WinApp.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\Particle.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\ParticleCommon.cpp" />
+    <ClCompile Include="..\engine\graphic\Particle\ParticleEmitter.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\Particle\ParticlePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\Object\PSO.cpp" />
+    <ClCompile Include="..\engine\scene\SceneManager.cpp" />
+    <ClCompile Include="..\engine\base\Common\SrvManager.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\Blend\NoneBlendPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\None\NoneEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\NonePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\OffScreenRendering.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\OffScreenRenderingPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Outline\OutlineEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\OutlinePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\PostEffectBase.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\PostEffectManager.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\PostEffectPSOBase.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\SepiaPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\RadialBlur\RadialBlurEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\RadialBlurPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\randam\randomEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\randomPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Sepia\SepiaEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Smoothing\SmoothingEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\SmoothingPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\Vignette\VignetteEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\VignettePSO.cpp" />
+    <ClCompile Include="..\engine\graphic\SkyBox\SkyBox.cpp" />
+    <ClCompile Include="..\engine\graphic\SkyBox\SkyBoxCommon.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\SkyBox\SkyBoxPSO.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\Font.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\TextManager.cpp" />
+    <ClCompile Include="..\engine\graphic\2d\TextObject.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\VHS\VHSEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\VHSPSO.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\FlickerGlow\FlickerGlowEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\Blend\BlendPSO.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\FlickerGlowPSO.h" />
+    <ClInclude Include="..\engine\scene\SceneType.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Aura\AuraEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\ClearConfetti\ClearConfettiEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\ClearFirework\ClearFireworkEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Cylinder\CylinderEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Default\DefaultEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\IParticleEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\OrbitTrail\OrbitTrailEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Original\OriginalEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\ParticleManager.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Primitive\PrimitiveEmitter.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Effects\Ring\RingEmitter.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Bloom\BloomEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\BloomPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\DepthBasedOutline\DepthBasedOutlineEffect.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.h" />
+    <ClInclude Include="..\engine\graphic\Animation\Animator.h" />
+    <ClInclude Include="..\engine\Collider\Collider.h" />
+    <ClInclude Include="..\engine\Collider\CollisionManager.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\DissolvePSO.h" />
+    <ClInclude Include="..\engine\graphic\data\CameraForGPU.h" />
+    <ClInclude Include="..\engine\graphic\data\Node.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\BlendMode.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\ToonPSO.h" />
+    <ClInclude Include="..\engine\audio\Audio.h" />
+    <ClInclude Include="..\engine\audio\AudioCommon.h" />
+    <ClInclude Include="..\engine\camera\Camera.h" />
+    <ClInclude Include="..\engine\camera\DebugCamera.h" />
+    <ClInclude Include="..\engine\leakChecker\D3DResourceLeakChecker.h" />
+    <ClInclude Include="..\engine\base\Common\DirectXCommon.h" />
+    <ClInclude Include="..\engine\input\Input.h" />
+    <ClInclude Include="..\engine\base\Utilities\Logger.h" />
+    <ClInclude Include="..\engine\graphic\data\Material.h" />
+    <ClInclude Include="..\engine\graphic\data\MaterialData.h" />
+    <ClInclude Include="..\engine\math\Matrix3x3.h" />
+    <ClInclude Include="..\engine\math\Matrix4x4.h" />
+    <ClInclude Include="..\engine\graphic\3d\Model.h" />
+    <ClInclude Include="..\engine\graphic\3d\ModelCommon.h" />
+    <ClInclude Include="..\engine\graphic\data\ModelData.h" />
+    <ClInclude Include="..\engine\graphic\3d\ModelManager.h" />
+    <ClInclude Include="..\engine\math\Matrix.h" />
+    <ClInclude Include="..\engine\graphic\3d\Object3d.h" />
+    <ClInclude Include="..\engine\graphic\3d\Object3dCommon.h" />
+    <ClInclude Include="..\engine\graphic\2d\Sprite.h" />
+    <ClInclude Include="..\engine\graphic\2d\SpriteCommon.h" />
+    <ClInclude Include="..\engine\base\Utilities\StringUtility.h" />
+    <ClInclude Include="..\engine\graphic\2d\TextureManager.h" />
+    <ClInclude Include="..\engine\graphic\data\Transform.h" />
+    <ClInclude Include="..\engine\graphic\data\TransformationMatrix.h" />
+    <ClInclude Include="..\engine\math\Vector2.h" />
+    <ClInclude Include="..\engine\math\Vector3.h" />
+    <ClInclude Include="..\engine\math\Vector4.h" />
+    <ClInclude Include="..\engine\graphic\data\VertexData.h" />
+    <ClInclude Include="..\engine\base\Common\WinApp.h" />
+    <ClInclude Include="..\engine\imgui\ImGuiManager.h" />
+    <ClInclude Include="..\engine\scene\IScene.h" />
+    <ClInclude Include="..\engine\graphic\Particle\Particle.h" />
+    <ClInclude Include="..\engine\graphic\Particle\ParticleCommon.h" />
+    <ClInclude Include="..\engine\graphic\Particle\ParticleEmitter.h" />
+    <ClInclude Include="..\engine\graphic\PSO\Particle\ParticlePSO.h" />
+    <ClInclude Include="..\engine\graphic\PSO\Object\PSO.h" />
+    <ClInclude Include="..\engine\scene\SceneManager.h" />
+    <ClInclude Include="..\engine\base\Common\SrvManager.h" />
+    <ClInclude Include="..\engine\graphic\PSO\Blend\NoneBlendPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\GaussianBlurEffect\GaussianBlurEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\GaussianBlurPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\GrayScale\GrayScaleEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\GrayScalePSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\None\NoneEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\NonePSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\OffScreenRendering.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\OffScreenRenderingPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Outline\OutlineEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\OutlinePSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\PostEffectBase.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\PostEffectManager.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\PostEffectPSOBase.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\SepiaPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\RadialBlur\RadialBlurEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\RadialBlurPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\randam\randomEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\randomPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Sepia\SepiaEffect.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Smoothing\SmoothingEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\SmoothingPSO.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\Vignette\VignetteEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\VignettePSO.h" />
+    <ClInclude Include="..\engine\graphic\SkyBox\SkyBox.h" />
+    <ClInclude Include="..\engine\graphic\SkyBox\SkyBoxCommon.h" />
+    <ClInclude Include="..\engine\graphic\PSO\SkyBox\SkyBoxPSO.h" />
+    <ClInclude Include="..\engine\Framework\Framework.h" />
+    <ClInclude Include="..\engine\graphic\line\Line.h" />
+    <ClInclude Include="..\engine\graphic\line\LineCommon.h" />
+    <ClInclude Include="..\engine\graphic\line\LineManager.h" />
+    <ClInclude Include="..\engine\graphic\PSO\Line\LinePSO.h" />
+    <ClInclude Include="..\engine\graphic\Animation\KeyFrame.h" />
+    <ClInclude Include="..\engine\graphic\Animation\Animation.h" />
+    <ClInclude Include="..\engine\math\Quaternion.h" />
+    <ClInclude Include="..\engine\graphic\2d\Font.h" />
+    <ClInclude Include="..\engine\graphic\2d\TextManager.h" />
+    <ClInclude Include="..\engine\graphic\2d\TextObject.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\VHS\VHSEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\VHSPSO.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\externals\imgui\imgui.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_demo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_draw.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_impl_dx12.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_impl_win32.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_tables.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\externals\imgui\imgui_widgets.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\externals\imgui\imconfig.h" />
+    <ClInclude Include="..\externals\imgui\imgui.h" />
+    <ClInclude Include="..\externals\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="..\externals\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="..\externals\imgui\imgui_internal.h" />
+    <ClInclude Include="..\externals\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\externals\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\externals\imgui\imstb_truetype.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\externals\imgui\LICENSE.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
