@@ -87,9 +87,24 @@ void SceneManager::ImGuiDraw() {
 
 	//シーン選択ウィンドウ（登録された名前からデータ駆動で生成）
 	ImGui::Begin("Scene");
+
+	// 現在いるシーンを表示（登録名が無ければ番号のみ）
+	auto currentIt = debugNames_.find(currentSceneNo);
+	const char* currentName = (currentIt != debugNames_.end()) ? currentIt->second.c_str() : "(no name)";
+	ImGui::Text("Current: %s (%d)", currentName, currentSceneNo);
+	ImGui::Separator();
+
 	for (const auto& [no, name] : debugNames_) {
+		// 現在のシーンに対応するボタンをハイライト表示
+		const bool isCurrent = (no == currentSceneNo);
+		if (isCurrent) {
+			ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+		}
 		if (ImGui::Button(name.c_str())) {
 			currentScene->SetSceneNo(no);
+		}
+		if (isCurrent) {
+			ImGui::PopStyleColor();
 		}
 	}
 	ImGui::End();
