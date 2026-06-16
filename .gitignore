@@ -4,3 +4,6 @@ generated/
 *.aps
 *.obj
 *.pdb
+
+# DirectXTex がビルド時に生成するコンパイル済みシェーダ(再生成されるため追跡しない)
+externals/DirectXTex/Shaders/Compiled/
