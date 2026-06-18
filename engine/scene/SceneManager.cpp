@@ -1,5 +1,8 @@
 #include "SceneManager.h"
 #include"ImGuiManager.h"
+#include"Logger.h"   // 未登録シーン検知のログ出力
+#include <cassert>
+#include <format>
 // 具体シーンは include しない（どのシーンが存在するかはゲーム側が登録する）
 
 
@@ -94,6 +97,15 @@ void SceneManager::ImGuiDraw() {
 	auto currentIt = debugNames_.find(currentSceneNo);
 	const char* currentName = (currentIt != debugNames_.end()) ? currentIt->second.c_str() : "(no name)";
 	ImGui::Text("Current: %s (%d)", currentName, currentSceneNo);
+
+	// パフォーマンス表示（ImGui が計測している平均フレームレート）
+	const ImGuiIO& io = ImGui::GetIO();
+	ImGui::Text("FPS: %.1f  (%.2f ms/frame)", io.Framerate, (io.Framerate > 0.0f) ? 1000.0f / io.Framerate : 0.0f);
+
+	// 現在のシーンを作り直す（同じ番号を渡すとリロードになる）
+	if (ImGui::Button("Reload current scene")) {
+		ChangeScene(currentSceneNo);
+	}
 	ImGui::Separator();
 
 	for (const auto& [no, name] : debugNames_) {
@@ -141,10 +153,16 @@ void SceneManager::RegisterScene(int sceneNo, SceneFactory factory, const std::s
 }
 
 std::unique_ptr<IScene> SceneManager::CreateScene(int sceneNo) {
-	// 登録テーブルを参照して生成（未登録なら nullptr）
+	// 登録テーブルを参照して生成
 	auto it = factories_.find(sceneNo);
 	if (it != factories_.end() && it->second) {
 		return it->second();
 	}
+	// 未登録の番号。GameScenes.h に enum を足したのに SceneRegistration.cpp の
+	// 登録を忘れている、というのが典型的な原因。黒画面で悩まないようここで知らせる。
+	TuboEngine::Logger::Log(std::format(
+		"[SceneManager] sceneNo={} is NOT registered. "
+		"Add sm->RegisterScene(...) in application/scene/SceneRegistration.cpp.\n", sceneNo));
+	assert(false && "ChangeScene: sceneNo is not registered (see SceneRegistration.cpp)");
 	return nullptr;
 }
