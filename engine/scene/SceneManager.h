@@ -39,6 +39,8 @@ public:
 
 	//初期化（開始シーン番号はゲーム側が指定する）
 	void Initialize(int startSceneNo);
+	// 現在のシーン番号を取得
+	int GetCurrentSceneNo() const { return currentSceneNo; }
 	//更新
 	void Update();
 	//終了処理
@@ -52,7 +54,10 @@ public:
 	// パーティクル描画
 	void ParticleDraw();
 
-	// シーン切り替え
+	// シーン切り替え（これが唯一の遷移API）。
+	//   別シーンへ:       ChangeScene(STAGE);
+	//   同じ番号を渡すと:  そのシーンをリロード（Finalize→Initialize）。
+	// 実際の切り替えは「次の Update」で行われる（描画途中で差し替わらない）。
 	void ChangeScene(int sceneNo);
 
 	// MainCamera取得
@@ -73,11 +78,9 @@ private:
 
 	//現在のシーン
 	std::unique_ptr<IScene> currentScene = nullptr;
-	//前のシーン
-	std::unique_ptr<IScene> prevScene = nullptr;
 	//現在のシーン番号
 	int currentSceneNo = 0;
-	//前のシーン番号
-	int prevSceneNo = 0;
+	//遷移リクエスト（-1 = リクエスト無し）。ChangeScene で設定し Update で消化する。
+	int requestedSceneNo_ = -1;
 };
 

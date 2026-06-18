@@ -7,14 +7,16 @@
 #include"ImGuiManager.h"
 // シーン番号の具体的な意味（enum SCENE）はゲーム側が持つ:
 //   application/scene/GameScenes.h
-// エンジンは sceneNo を単なる int として扱う。
+//
+// ▼ シーン遷移のしかた（重要）
+//   別シーンへ移るときは SceneManager に依頼するだけ:
+//       SceneManager::GetInstance()->ChangeScene(STAGE);
+//   （現在シーンと同じ番号を渡すと「リロード」になる）
+//   IScene 側に番号を持たせる作りは廃止したので、各シーンの Initialize に
+//   「自分の番号を宣言するおまじない」は不要になった。
 
 class IScene
 {
-protected:
-	//シーン番号
-	static int sceneNo;
-
 public:
 
 	//初期化
@@ -33,13 +35,9 @@ public:
 	virtual void ParticleDraw() = 0;
 
 	virtual TuboEngine::Camera* GetMainCamera() const = 0;
-	
+
 	//デストラクタ
 	virtual ~IScene() = 0;
-	//シーン番号を取得
-	int GetSceneNo() { return sceneNo; }
-	//シーン番号を設定
-	void SetSceneNo(int no) { sceneNo = no; }
 
 };
 
