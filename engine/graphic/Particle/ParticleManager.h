@@ -92,6 +92,9 @@ private:
 	std::vector<std::string> history_;
 	int historyIndex_ = -1;
 	bool changedThisFrame_ = false;
+	bool applyingSnapshot_ = false; // ApplySnapshot 実行中フラグ（復元を履歴に記録しないため）
+	bool hasPendingApply_ = false;  // Undo/Redo の復元を Draw 冒頭まで遅延するフラグ
+	std::string pendingApplyJson_;  // 遅延適用する snapshot JSON
 
 	std::string selectedEmitter_;
 	bool initialLoaded_ = false;
