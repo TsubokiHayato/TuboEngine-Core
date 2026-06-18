@@ -127,7 +127,7 @@ void TuboEngine::ParticleManager::SetStatus(const char* fmt, ...) {
     va_end(args); statusTimer_ = 3.0f;
 }
 
-void TuboEngine::ParticleManager::MarkChanged() { changedThisFrame_ = true; }
+void TuboEngine::ParticleManager::MarkChanged() { if (!applyingSnapshot_) changedThisFrame_ = true; }
 
 std::string TuboEngine::ParticleManager::GenerateUniqueName(const std::string& base) const {
     if (base.empty()) return GenerateUniqueName("Emitter");
@@ -152,6 +152,10 @@ void TuboEngine::ParticleManager::Update(float dt, TuboEngine::Camera* cam) {
 }
 
 void TuboEngine::ParticleManager::Draw() {
+    // 描画コマンドを積む前に、保留中の Undo/Redo 復元を適用する。
+    // （フレーム途中で emitters を作り直すと、コマンドリストが参照中のGPUリソースを
+    //   破棄してしまい OBJECT_DELETED_WHILE_STILL_IN_USE で落ちるのを防ぐ）
+    if (hasPendingApply_) { ApplySnapshot(pendingApplyJson_); hasPendingApply_ = false; }
     auto* cmd = TuboEngine::DirectXCommon::GetInstance()->GetCommandList().Get();
     for (auto& e : emitters_) e->Draw(cmd);
     DrawPreview(cmd);
@@ -273,8 +277,12 @@ void TuboEngine::ParticleManager::CaptureHistory() {
 }
 
 void TuboEngine::ParticleManager::ApplySnapshot(const std::string& jsonStr) {
-    nlohmann::json root; try { root = nlohmann::json::parse(jsonStr); } catch (...) { SetStatus("Snapshot parse error"); return; }
-    emitters_.clear(); if (!root.contains("emitters")) { SetStatus("Snapshot missing 'emitters'"); return; }
+    // 復元中は MarkChanged を無視させる。
+    // （CreateEmitterByType が MarkChanged を立てるため、復元そのものが「変更」として
+    //   再記録され、Redo履歴を消してUndo/Redoが効かなくなるのを防ぐ）
+    applyingSnapshot_ = true;
+    nlohmann::json root; try { root = nlohmann::json::parse(jsonStr); } catch (...) { SetStatus("Snapshot parse error"); applyingSnapshot_ = false; return; }
+    emitters_.clear(); if (!root.contains("emitters")) { SetStatus("Snapshot missing 'emitters'"); applyingSnapshot_ = false; return; }
     for (auto& j : root["emitters"]) {
         ParticlePreset p; std::string type=j.value("type","Primitive"); p.name=j.value("name",""); p.texture=j.value("texture",""); p.maxInstances=j.value("maxInstances",128); p.billboard=j.value("billboard",true); p.emitRate=j.value("emitRate",30.0f); p.autoEmit=j.value("autoEmit",false); p.burstCount=j.value("burstCount",10); p.lifeMin=j.value("lifeMin",0.5f); p.lifeMax=j.value("lifeMax",1.5f);
 		auto readV3 = [&](const char* key, TuboEngine::Math::Vector3 def) {
@@ -310,6 +318,7 @@ void TuboEngine::ParticleManager::ApplySnapshot(const std::string& jsonStr) {
         CreateEmitterByType(type, p);
     }
     SetStatus("Snapshot applied (%zu emitters)", emitters_.size());
+    applyingSnapshot_ = false;
 }
 
 void TuboEngine::ParticleManager::Undo() {
@@ -318,7 +327,10 @@ void TuboEngine::ParticleManager::Undo() {
 		return;
 	}
 	--historyIndex_;
-	ApplySnapshot(history_[historyIndex_]);
+	// フレーム途中で emitters を作り直すとコマンドリストが参照中のGPUリソースを破棄して
+	// OBJECT_DELETED_WHILE_STILL_IN_USE で落ちる。実際の復元は Draw() 冒頭まで遅延する。
+	pendingApplyJson_ = history_[historyIndex_];
+	hasPendingApply_ = true;
 }
 void TuboEngine::ParticleManager::Redo() {
 	if (historyIndex_ + 1 >= (int)history_.size()) {
@@ -326,7 +338,8 @@ void TuboEngine::ParticleManager::Redo() {
 		return;
 	}
 	++historyIndex_;
-	ApplySnapshot(history_[historyIndex_]);
+	pendingApplyJson_ = history_[historyIndex_];
+	hasPendingApply_ = true;
 }
 
 void TuboEngine::ParticleManager::SaveAll(const std::string& path) {
