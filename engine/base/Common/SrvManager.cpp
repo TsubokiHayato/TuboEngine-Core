@@ -1,6 +1,8 @@
 #include "SrvManager.h"
 #include <iostream>
 #include <cassert>
+#include <format>
+#include "Logger.h"
 
 const uint32_t TuboEngine::SrvManager::kMaxSRVCount = 1024;
 
@@ -17,6 +19,23 @@ void TuboEngine::SrvManager::Initialize() {
 }
 
 uint32_t TuboEngine::SrvManager::Allocate() {
+
+	// 上限チェック：ヒープ(kMaxSRVCount)を超えて確保すると、範囲外の
+	// ディスクリプタハンドルへ書き込み → メモリ破壊 / デバイスロストになる。
+	// このマネージャは確保したSRVを解放しない設計のため、シーン遷移・
+	// パーティクル・フォント生成などの積み重ねで useIndex が枯渇しうる。
+	// 静かに壊れる前にここで検知する。
+	if (useIndex >= kMaxSRVCount) {
+		TuboEngine::Logger::Log(std::format(
+			"[SrvManager] SRV descriptor heap exhausted: useIndex={} >= kMaxSRVCount={}. "
+			"これ以上 Allocate() できません（SRVは解放されない設計のため、シーン遷移/"
+			"パーティクル/フォント生成の積み重ねで枯渇します）。\n",
+			useIndex, kMaxSRVCount));
+		assert(false && "SrvManager::Allocate - SRV descriptor heap exhausted (useIndex >= kMaxSRVCount)");
+		// Release(NDEBUG)では assert が無効なので、ヒープ範囲外への書き込みを避けるため
+		// 末尾の有効インデックスにクランプして返す（描画は乱れるが即クラッシュは防ぐ）。
+		return kMaxSRVCount - 1;
+	}
 
 	// returnする番号を一旦記録
 	uint32_t index = useIndex;
