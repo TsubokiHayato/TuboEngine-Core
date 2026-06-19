@@ -1,0 +1,38 @@
+{
+  "texts": [
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "font": "Best10",
+      "fontSize": 128.0,
+      "name": "title",
+      "position": [
+        100.0,
+        100.0
+      ],
+      "scale": 1.0,
+      "text": "バトルフロー"
+    },
+    {
+      "color": [
+        0.8467742204666138,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "font": "UtsukushiFONT",
+      "fontSize": 32.0,
+      "name": "Debug",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "scale": 1.0,
+      "text": "DebugScene"
+    }
+  ]
+}

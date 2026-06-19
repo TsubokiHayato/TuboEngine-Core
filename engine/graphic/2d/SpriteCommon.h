@@ -2,6 +2,9 @@
 #include<memory>
 #include"Object/PSO.h"
 #include"BlendPSO.h"
+#include <wrl.h>
+#include <d3d12.h>
+#include <cstdint>
 
 namespace TuboEngine {
 class SpriteCommon {
@@ -53,6 +56,12 @@ public:
 private:
 	std::unique_ptr<PSO> pso = nullptr;  // PSOのユニークポインタ
 	std::unique_ptr<BlendPSO> blendPso_; // ブレンドPSOのユニークポインタ
+
+	// スプライト/テキストは Object3d 用の PSO(Object3d.VS.hlsl) を間借りして描画している。
+	// そのVSは param[10] (gCommonData/useInstancing, b1) を必ず読むため、2D描画でも
+	// param[10] が初期化済みである必要がある。DrawSettingsCommon でこの既定CBV(=0)を
+	// バインドして GBV の「未初期化ルート引数」エラーを防ぐ。
+	Microsoft::WRL::ComPtr<ID3D12Resource> defaultCommonDataResource_;
 
 	int blenderMode_; // ブレンダーモード
 };
