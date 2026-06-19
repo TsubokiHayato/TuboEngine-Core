@@ -11,6 +11,7 @@
 #include "Effects/Original/OriginalEmitter.h"
 #include "Effects/OrbitTrail/OrbitTrailEmitter.h"
 #include "Effects/Default/DefaultEmitter.h"
+#include "Effects/Aura/AuraEmitter.h"
 
 
 static void ApplyParticleManagerTheme(int themeId = 0) {
@@ -94,6 +95,7 @@ void TuboEngine::ParticleManager::RegisterDefaultEmitters() {
     emitterRegistry_["Cylinder"]  = [](){ return std::make_unique<CylinderEmitter>(); };
     emitterRegistry_["Original"]  = [](){ return std::make_unique<OriginalEmitter>(); };
     emitterRegistry_["OrbitTrail"] = [](){ return std::make_unique<OrbitTrailEmitter>(); };
+    emitterRegistry_["Aura"]          = [](){ return std::make_unique<AuraEmitter>(); };
 }
 
 std::string TuboEngine::ParticleManager::DetectEmitterType(IParticleEmitter* e) const {
@@ -102,6 +104,8 @@ std::string TuboEngine::ParticleManager::DetectEmitterType(IParticleEmitter* e) 
     if (dynamic_cast<CylinderEmitter*>(e)) return "Cylinder";
     if (dynamic_cast<OriginalEmitter*>(e)) return "Original";
     if (dynamic_cast<OrbitTrailEmitter*>(e)) return "OrbitTrail";
+    // Aura は PrimitiveEmitter 派生のため Primitive 判定より先に調べる
+    if (dynamic_cast<AuraEmitter*>(e)) return "Aura";
     return "Primitive";
 }
 
@@ -170,7 +174,7 @@ void TuboEngine::ParticleManager::DrawStatusBar() {
 void TuboEngine::ParticleManager::DrawTemplatesSection() {
 #ifdef USE_IMGUI
     ImGui::Separator(); ImGui::Text("Templates"); static int tmplIndex = 0;
-    const char* items = "Default\0Smoke\0RingBurst\0Fountain\0Radial\0OrbitTrail\0";
+    const char* items = "Default\0Smoke\0RingBurst\0Fountain\0Radial\0OrbitTrail\0Aura\0HitEffect\0";
     ImGui::Combo("Template", &tmplIndex, items);
     if (ImGui::Button("Add Template")) {
         ParticlePreset p{}; switch (tmplIndex) {
@@ -190,6 +194,10 @@ void TuboEngine::ParticleManager::DrawTemplatesSection() {
             p.name="Radial"; p.texture="particle.png"; p.burstCount=40; p.lifeMin=0.7f; p.lifeMax=1.4f; p.velMin={1,0,0}; p.velMax={3,0,0}; p.scaleStart={0.4f,0.4f,0.4f}; p.scaleEnd={0.2f,0.2f,0.2f}; p.colorStart={1,0.8f,0.5f,0.7f}; p.colorEnd={1,1,0.8f,0}; CreateEmitterByType("Original", p); break;
         case 5: // OrbitTrail
             p.name="OrbitTrail"; p.texture="particle.png"; p.emitRate=60; p.autoEmit=true; p.lifeMin=0.4f; p.lifeMax=0.8f; p.scaleStart={0.15f,0.15f,0.15f}; p.scaleEnd={0.05f,0.05f,0.05f}; p.colorStart={0.6f,0.8f,1,0.9f}; p.colorEnd={0.2f,0.4f,1,0}; CreateEmitterByType("OrbitTrail", p); break;
+        case 6: // Aura（PlayerAura: AuraEmitter::Initialize が大半の値を上書きする）
+            p.name="Aura"; p.texture="circle.png"; CreateEmitterByType("Aura", p); break;
+        case 7: // HitEffect（横細・縦長の薄片を Z回転ランダムで8個 → 星型/剣撃。scale/回転は Primitive 既定値に任せる）
+            p.name="HitEffect"; p.texture="circle.png"; p.maxInstances=64; p.burstCount=8; p.lifeMin=0.3f; p.lifeMax=0.5f; p.colorStart={1,1,1,1}; p.colorEnd={1,1,1,0}; CreateEmitterByType("Primitive", p); break;
         }
     }
 #endif
@@ -198,7 +206,7 @@ void TuboEngine::ParticleManager::DrawTemplatesSection() {
 void TuboEngine::ParticleManager::DrawEmittersSection() {
 #ifdef USE_IMGUI
     ImGui::Separator(); ImGui::Text("Emitters"); static int newType = 0;
-    ImGui::Combo("New Type", &newType, "Default\0Primitive\0Ring\0Cylinder\0Original\0OrbitTrail\0");
+    ImGui::Combo("New Type", &newType, "Default\0Primitive\0Ring\0Cylinder\0Original\0OrbitTrail\0Aura\0");
 
     static char nameBuf[64] = "Emitter";
     static char texBuf[128] = "particle.png";
@@ -210,7 +218,7 @@ void TuboEngine::ParticleManager::DrawEmittersSection() {
         p.name = nameBuf;
         p.texture = texBuf;
         // other fields use defaults; ranges will be fixed by Initialize in each emitter type
-        const char* types[] = {"Default","Primitive","Ring","Cylinder","Original","OrbitTrail"};
+        const char* types[] = {"Default","Primitive","Ring","Cylinder","Original","OrbitTrail","Aura"};
         CreateEmitterByType(types[newType], p);
     }
 
@@ -501,6 +509,9 @@ void TuboEngine::ParticleManager::ApplyPreviewPreset(const ParticlePreset& src, 
             break;
         case 5:
             previewEmitter_ = std::make_unique<OrbitTrailEmitter>();
+            break;
+        case 6:
+            previewEmitter_ = std::make_unique<AuraEmitter>();
             break;
         default:
             previewEmitter_ = std::make_unique<PrimitiveEmitter>();
