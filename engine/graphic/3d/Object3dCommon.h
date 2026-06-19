@@ -2,6 +2,9 @@
 #include"Object/PSO.h"
 #include"BlendPSO.h"
 #include"Camera.h"
+#include <wrl.h>
+#include <d3d12.h>
+#include <cstdint>
 
 
 class Camera;
@@ -59,6 +62,12 @@ public:
 private:
 	std::unique_ptr<PSO> pso = nullptr;  // PSOのユニークポインタ
 	std::unique_ptr<BlendPSO> blendPso_; // ブレンドPSOのユニークポインタ
+
+	// param[10] (VS b1, gCommonData) 用の既定CBV（useInstancing=0）。
+	// ルートシグネチャ束縛直後にこれを必ずバインドしておくことで、
+	// 個別描画が param[10] をセットし忘れても VS の gCommonData が
+	// 初期化済みになり、GBV の「未初期化ルート引数」エラーを防ぐ。
+	Microsoft::WRL::ComPtr<ID3D12Resource> defaultCommonDataResource_;
 
 	TuboEngine::Camera* defaultCamera = nullptr; // デフォルトカメラ
 	int blenderMode_ = 0;                        // ブレンダーモード
