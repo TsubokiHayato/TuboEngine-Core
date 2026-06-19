@@ -12,6 +12,15 @@ void TuboEngine::Object3dCommon::Initialize() {
 
 	blendPso_ = std::make_unique<BlendPSO>();
 	blendPso_->Initialize(kBlendModeNormal);
+
+	// param[10] (gCommonData, VS b1) 用の既定CBVを生成（useInstancing = 0）。
+	// Object3d.VS.hlsl は useInstancing を必ず読むため、どの描画でも param[10]
+	// は初期化済みである必要がある。DrawSettingsCommon でこれをバインドする。
+	defaultCommonDataResource_ = TuboEngine::DirectXCommon::GetInstance()->CreateBufferResource(sizeof(int32_t) * 4); // 256/16byte アライン余裕
+	int32_t* commonMapped = nullptr;
+	defaultCommonDataResource_->Map(0, nullptr, reinterpret_cast<void**>(&commonMapped));
+	*commonMapped = 0; // useInstancing = false
+	defaultCommonDataResource_->Unmap(0, nullptr);
 }
 
 void TuboEngine::Object3dCommon::Finalize() {
@@ -53,5 +62,12 @@ void TuboEngine::Object3dCommon::DrawSettingsCommon(int blendMode) {
 		pso->DrawSettingsCommon();
 		break;
 	}
+
+	// ルートシグネチャ束縛直後に param[10] (gCommonData) へ既定CBVをセット。
+	// 個別の描画が param[10] を設定しなくても、VS が必ず初期化済みの値を読めるため
+	// GBV の GPU_BASED_VALIDATION_ROOT_ARGUMENT_UNINITIALIZED を防げる。
+	// 個別描画（Model::Draw / DrawInstanced 等）が後から param[10] を上書きするのは問題ない。
+	TuboEngine::DirectXCommon::GetInstance()->GetCommandList()
+		->SetGraphicsRootConstantBufferView(10, defaultCommonDataResource_->GetGPUVirtualAddress());
 
 }

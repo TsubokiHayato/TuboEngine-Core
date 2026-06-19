@@ -1,0 +1,23 @@
+﻿{
+  "texts": [
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "font": "Best10",
+      "fontSize": 48.0,
+      "horizontalAlign": 1,
+      "name": "ReturnText",
+      "position": [
+        640.0,
+        550.0
+      ],
+      "scale": 1.0,
+      "text": "Push SPACE to Return Stage",
+      "verticalAlign": 1
+    }
+  ]
+}
