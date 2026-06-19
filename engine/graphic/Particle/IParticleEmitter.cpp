@@ -58,6 +58,14 @@ void IParticleEmitter::Emit(uint32_t count) {
 }
 
 void IParticleEmitter::Update(float dt, const TuboEngine::Camera* camera) {
+	// maxInstances がUI等で変更されていたら、描画記録前のこの安全な点(GPUアイドル)で
+	// インスタンスバッファを作り直す。描画フェーズ途中で作り直すと、その frame の
+	// コマンドリストが参照中のバッファを解放してしまい OBJECT_DELETED_WHILE_STILL_IN_USE
+	// /デバイスロストで落ちる（AutoEmit中に maxInstances を変えると落ちていた原因）。
+	if (preset_.maxInstances != allocatedInstances_) {
+		ReallocateInstanceBufferIfNeeded();
+	}
+
 	if (dt <= 0.0f) return;
 
 	Matrix4x4 viewProj = TuboEngine::Math::MakeIdentity4x4();
@@ -90,7 +98,10 @@ void IParticleEmitter::Draw(ID3D12GraphicsCommandList* cmd) {
 	cmd->SetGraphicsRootDescriptorTable(1, TuboEngine::SrvManager::GetInstance()->GetGPUDescriptorHandle(instancingSrvIndex_));
 	cmd->SetGraphicsRootDescriptorTable(2, TuboEngine::SrvManager::GetInstance()->GetGPUDescriptorHandle(textureSrvIndex_));
 
-	cmd->DrawInstanced(static_cast<UINT>(vertices_.size()), instanceCount_, 0, 0);
+	// 実バッファ容量(allocatedInstances_)を超えて描画すると、StructuredBuffer SRV の
+	// 範囲外読み出しになり GBV/デバイスロストで落ちるためクランプする。
+	const uint32_t drawCount = std::min(instanceCount_, allocatedInstances_);
+	cmd->DrawInstanced(static_cast<UINT>(vertices_.size()), drawCount, 0, 0);
 }
 
 void IParticleEmitter::DrawImGui() {
@@ -99,9 +110,8 @@ void IParticleEmitter::DrawImGui() {
 	if (ImGui::TreeNode(preset_.name.c_str())) {
 		ImGui::Text("Instances: %u / %u", instanceCount_, preset_.maxInstances);
 		ImGui::DragInt("MaxInstances", reinterpret_cast<int*>(&preset_.maxInstances), 1, 1, 50000);
-		if (ImGui::Button("ApplyResize")) {
-			ReallocateInstanceBufferIfNeeded();
-		}
+		// MaxInstances を変えると次フレームの Update() で安全に再確保される
+		// （描画記録の途中で再確保すると落ちるため、ここで直接 Reallocate しない）。
 		ImGui::TreePop();
 	}
 #endif
@@ -144,7 +154,13 @@ void IParticleEmitter::EnsureBuffers() {
 
 void IParticleEmitter::ReallocateInstanceBufferIfNeeded() {
 	if (preset_.maxInstances == allocatedInstances_) return;
+	if (preset_.maxInstances == 0) preset_.maxInstances = 1; // 0バイトバッファ確保によるクラッシュ防止
+
+	// 注意: この関数は Update()（描画記録前・GPUアイドル点）から呼ぶこと。
+	// 描画フェーズの途中で呼ぶと、記録済みコマンドが参照するバッファを解放して落ちる。
 	auto* dx = TuboEngine::DirectXCommon::GetInstance();
+
+	if (instancingPtr_) { instancing_->Unmap(0, nullptr); instancingPtr_ = nullptr; }
 	instancing_.Reset();
 	instancing_ = dx->CreateBufferResource(sizeof(ParticleForGPU) * preset_.maxInstances);
 	allocatedInstances_ = preset_.maxInstances;
@@ -154,8 +170,11 @@ void IParticleEmitter::ReallocateInstanceBufferIfNeeded() {
 		instancingPtr_[i].World = TuboEngine::Math::MakeIdentity4x4();
 		instancingPtr_[i].color = {1,1,1,1};
 	}
-	// 新しい SRV を再確保（古いインデックスを再利用せず新規取得）
-	instancingSrvIndex_ = TuboEngine::SrvManager::GetInstance()->Allocate();
+	// SRVは新規確保せず、既存インデックスを再利用して上書きする
+	// （毎リサイズで Allocate するとディスクリプタヒープが枯渇するため）。
+	if (instancingSrvIndex_ < 0) {
+		instancingSrvIndex_ = TuboEngine::SrvManager::GetInstance()->Allocate();
+	}
 	TuboEngine::SrvManager::GetInstance()->CreateSRVForStructuredBuffer(
 		instancingSrvIndex_, instancing_.Get(), preset_.maxInstances, sizeof(ParticleForGPU));
 
@@ -221,7 +240,7 @@ void IParticleEmitter::UpdateParticles(float dt, const Matrix4x4& viewProj, cons
 	if (instancingPtr_ && instanceCount_ > 0) {
 		uint32_t i = 0;
 		for (auto& p : particles_) {
-			if (i >= preset_.maxInstances) break;
+			if (i >= allocatedInstances_) break; // 実バッファ容量で頭打ち（書き込みオーバーラン防止）
 			Matrix4x4 local = TuboEngine::Math::MakeAffineMatrix(p.transform.scale, p.transform.rotate, p.transform.translate);
 			Matrix4x4 world = preset_.billboard ? Multiply(billboard, local) : local;
 			instancingPtr_[i].World = world;

@@ -241,7 +241,9 @@ void TuboEngine::ParticleManager::DrawEmittersSection() {
         // Cylinder 専用: 縦軸まわりの回転速度（rad/秒, 0で停止, 符号で逆回転）
         if (auto* cyl = dynamic_cast<CylinderEmitter*>(e.get())) { float spin = cyl->GetSpinSpeedY(); if (ImGui::DragFloat(("SpinSpeedY##"+p.name).c_str(), &spin, 0.05f, -20.0f, 20.0f)) { cyl->SetSpinSpeedY(spin); MarkChanged(); } }
         if (lifeEd||posMinE||posMaxE||velMinE||velMaxE||sclStartE||sclEndE||colStartE||colEndE||gravE||dragE||billboardE||worldSpaceE||emitterPosE|| oldMax!=p.maxInstances) { FixPresetRanges(p); MarkChanged(); }
-        if (oldMax!=p.maxInstances) { e->ReallocateInstanceBufferIfNeeded(); SetStatus("Reallocated '%s' maxInstances=%u", p.name.c_str(), p.maxInstances); }
+        // 再確保は描画記録前の Update() 側で安全に行う（ここで直接呼ぶとコマンドリストが
+        // 参照中のバッファを解放して落ちるため、preset の値変更だけに留める）。
+        if (oldMax!=p.maxInstances) { SetStatus("'%s' maxInstances=%u（次フレームのUpdateで再確保）", p.name.c_str(), p.maxInstances); }
         if (ImGui::Button(("Emit Burst##"+p.name).c_str())) { e->Emit(p.burstCount); MarkChanged(); }
         ImGui::SameLine(); if (ImGui::Button(("Clear##"+p.name).c_str())) { pendingAction_=PendingActionType::ClearEmitter; pendingEmitterName_=p.name; OpenConfirmPopup("ConfirmAction", ("Clear particles in '"+p.name+"' ?").c_str()); }
         ImGui::SameLine(); if (ImGui::Button(("Delete##"+p.name).c_str())) { SetStatus("Removed '%s'", p.name.c_str()); emitters_.erase(emitters_.begin()+i); if (selectedEmitter_==p.name) selectedEmitter_.clear(); MarkChanged(); ImGui::TreePop(); continue; }
