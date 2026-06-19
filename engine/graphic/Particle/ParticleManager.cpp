@@ -11,6 +11,7 @@
 #include "Effects/Original/OriginalEmitter.h"
 #include "Effects/OrbitTrail/OrbitTrailEmitter.h"
 #include "Effects/Default/DefaultEmitter.h"
+#include "Effects/Aura/AuraEmitter.h"
 
 
 static void ApplyParticleManagerTheme(int themeId = 0) {
@@ -94,6 +95,7 @@ void TuboEngine::ParticleManager::RegisterDefaultEmitters() {
     emitterRegistry_["Cylinder"]  = [](){ return std::make_unique<CylinderEmitter>(); };
     emitterRegistry_["Original"]  = [](){ return std::make_unique<OriginalEmitter>(); };
     emitterRegistry_["OrbitTrail"] = [](){ return std::make_unique<OrbitTrailEmitter>(); };
+    emitterRegistry_["Aura"]          = [](){ return std::make_unique<AuraEmitter>(); };
 }
 
 std::string TuboEngine::ParticleManager::DetectEmitterType(IParticleEmitter* e) const {
@@ -102,6 +104,8 @@ std::string TuboEngine::ParticleManager::DetectEmitterType(IParticleEmitter* e) 
     if (dynamic_cast<CylinderEmitter*>(e)) return "Cylinder";
     if (dynamic_cast<OriginalEmitter*>(e)) return "Original";
     if (dynamic_cast<OrbitTrailEmitter*>(e)) return "OrbitTrail";
+    // Aura は PrimitiveEmitter 派生のため Primitive 判定より先に調べる
+    if (dynamic_cast<AuraEmitter*>(e)) return "Aura";
     return "Primitive";
 }
 
@@ -170,7 +174,7 @@ void TuboEngine::ParticleManager::DrawStatusBar() {
 void TuboEngine::ParticleManager::DrawTemplatesSection() {
 #ifdef USE_IMGUI
     ImGui::Separator(); ImGui::Text("Templates"); static int tmplIndex = 0;
-    const char* items = "Default\0Smoke\0RingBurst\0Fountain\0Radial\0OrbitTrail\0";
+    const char* items = "Default\0Smoke\0RingBurst\0Fountain\0Radial\0OrbitTrail\0Aura\0HitEffect\0Cylinder\0";
     ImGui::Combo("Template", &tmplIndex, items);
     if (ImGui::Button("Add Template")) {
         ParticlePreset p{}; switch (tmplIndex) {
@@ -190,6 +194,12 @@ void TuboEngine::ParticleManager::DrawTemplatesSection() {
             p.name="Radial"; p.texture="particle.png"; p.burstCount=40; p.lifeMin=0.7f; p.lifeMax=1.4f; p.velMin={1,0,0}; p.velMax={3,0,0}; p.scaleStart={0.4f,0.4f,0.4f}; p.scaleEnd={0.2f,0.2f,0.2f}; p.colorStart={1,0.8f,0.5f,0.7f}; p.colorEnd={1,1,0.8f,0}; CreateEmitterByType("Original", p); break;
         case 5: // OrbitTrail
             p.name="OrbitTrail"; p.texture="particle.png"; p.emitRate=60; p.autoEmit=true; p.lifeMin=0.4f; p.lifeMax=0.8f; p.scaleStart={0.15f,0.15f,0.15f}; p.scaleEnd={0.05f,0.05f,0.05f}; p.colorStart={0.6f,0.8f,1,0.9f}; p.colorEnd={0.2f,0.4f,1,0}; CreateEmitterByType("OrbitTrail", p); break;
+        case 6: // Aura（PlayerAura: AuraEmitter::Initialize が大半の値を上書きする）
+            p.name="Aura"; p.texture="circle.png"; CreateEmitterByType("Aura", p); break;
+        case 7: // HitEffect（横細・縦長の薄片を Z回転ランダムで8個 → 星型/剣撃。scale/回転は Primitive 既定値に任せる）
+            p.name="HitEffect"; p.texture="circle.png"; p.maxInstances=64; p.burstCount=8; p.lifeMin=0.3f; p.lifeMax=0.5f; p.colorStart={1,1,1,1}; p.colorEnd={1,1,1,0}; CreateEmitterByType("Primitive", p); break;
+        case 8: // Cylinder（縦ストリークの円筒。gradationLine テクスチャを側面に貼る）
+            p.name="Cylinder"; p.texture="gradationLine.png"; p.maxInstances=8; p.burstCount=1; p.lifeMin=0.8f; p.lifeMax=1.2f; p.colorStart={1,1,1,1}; p.colorEnd={1,1,1,0}; CreateEmitterByType("Cylinder", p); break;
         }
     }
 #endif
@@ -198,7 +208,7 @@ void TuboEngine::ParticleManager::DrawTemplatesSection() {
 void TuboEngine::ParticleManager::DrawEmittersSection() {
 #ifdef USE_IMGUI
     ImGui::Separator(); ImGui::Text("Emitters"); static int newType = 0;
-    ImGui::Combo("New Type", &newType, "Default\0Primitive\0Ring\0Cylinder\0Original\0OrbitTrail\0");
+    ImGui::Combo("New Type", &newType, "Default\0Primitive\0Ring\0Cylinder\0Original\0OrbitTrail\0Aura\0");
 
     static char nameBuf[64] = "Emitter";
     static char texBuf[128] = "particle.png";
@@ -210,7 +220,7 @@ void TuboEngine::ParticleManager::DrawEmittersSection() {
         p.name = nameBuf;
         p.texture = texBuf;
         // other fields use defaults; ranges will be fixed by Initialize in each emitter type
-        const char* types[] = {"Default","Primitive","Ring","Cylinder","Original","OrbitTrail"};
+        const char* types[] = {"Default","Primitive","Ring","Cylinder","Original","OrbitTrail","Aura"};
         CreateEmitterByType(types[newType], p);
     }
 
@@ -228,6 +238,8 @@ void TuboEngine::ParticleManager::DrawEmittersSection() {
         bool velMinE=ImGui::DragFloat3(("VelMin##"+p.name).c_str(), &p.velMin.x,0.01f); bool velMaxE=ImGui::DragFloat3(("VelMax##"+p.name).c_str(), &p.velMax.x,0.01f); bool sclStartE=ImGui::DragFloat3(("ScaleStart##"+p.name).c_str(), &p.scaleStart.x,0.01f); bool sclEndE=ImGui::DragFloat3(("ScaleEnd##"+p.name).c_str(), &p.scaleEnd.x,0.01f);
         bool colStartE=ImGui::ColorEdit4(("ColorStart##"+p.name).c_str(), &p.colorStart.x); bool colEndE=ImGui::ColorEdit4(("ColorEnd##"+p.name).c_str(), &p.colorEnd.x); bool gravE=ImGui::DragFloat3(("Gravity##"+p.name).c_str(), &p.gravity.x,0.01f); bool dragE=ImGui::DragFloat(("Drag##"+p.name).c_str(), &p.drag,0.001f,0.0f,2.0f);
         bool billboardE=ImGui::Checkbox(("Billboard##"+p.name).c_str(), &p.billboard); bool worldSpaceE=ImGui::Checkbox(("WorldSpace##"+p.name).c_str(), &p.simulateInWorldSpace); bool emitterPosE=ImGui::DragFloat3(("EmitterPos##"+p.name).c_str(), &p.emitterTransform.translate.x,0.01f);
+        // Cylinder 専用: 縦軸まわりの回転速度（rad/秒, 0で停止, 符号で逆回転）
+        if (auto* cyl = dynamic_cast<CylinderEmitter*>(e.get())) { float spin = cyl->GetSpinSpeedY(); if (ImGui::DragFloat(("SpinSpeedY##"+p.name).c_str(), &spin, 0.05f, -20.0f, 20.0f)) { cyl->SetSpinSpeedY(spin); MarkChanged(); } }
         if (lifeEd||posMinE||posMaxE||velMinE||velMaxE||sclStartE||sclEndE||colStartE||colEndE||gravE||dragE||billboardE||worldSpaceE||emitterPosE|| oldMax!=p.maxInstances) { FixPresetRanges(p); MarkChanged(); }
         if (oldMax!=p.maxInstances) { e->ReallocateInstanceBufferIfNeeded(); SetStatus("Reallocated '%s' maxInstances=%u", p.name.c_str(), p.maxInstances); }
         if (ImGui::Button(("Emit Burst##"+p.name).c_str())) { e->Emit(p.burstCount); MarkChanged(); }
@@ -262,7 +274,7 @@ void TuboEngine::ParticleManager::Remove(const std::string& name) {
 }
 
 std::string TuboEngine::ParticleManager::BuildSnapshotJson() const {
-    nlohmann::json root; for (auto& e : emitters_) { const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e.get()); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"center",{p.center.x,p.center.y,p.center.z}},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; root["emitters"].push_back(j);} return root.dump(); }
+    nlohmann::json root; for (auto& e : emitters_) { const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e.get()); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"center",{p.center.x,p.center.y,p.center.z}},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; if (auto* cyl = dynamic_cast<CylinderEmitter*>(e.get())) j["spinSpeedY"] = cyl->GetSpinSpeedY(); root["emitters"].push_back(j);} return root.dump(); }
 
 void TuboEngine::ParticleManager::CaptureHistory() {
 	std::string snap = BuildSnapshotJson();
@@ -315,7 +327,7 @@ void TuboEngine::ParticleManager::ApplySnapshot(const std::string& jsonStr) {
 		p.emitterTransform.translate = emPos;
 		p.drag = j.value("drag", 0.0f);
 		p.simulateInWorldSpace = j.value("simulateInWorldSpace", true);
-        CreateEmitterByType(type, p);
+        if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
     }
     SetStatus("Snapshot applied (%zu emitters)", emitters_.size());
     applyingSnapshot_ = false;
@@ -392,13 +404,13 @@ void TuboEngine::ParticleManager::LoadAll(const std::string& path) {
 		p.emitterTransform.translate = emPos;
 		p.drag = j.value("drag", 0.0f);
 		p.simulateInWorldSpace = j.value("simulateInWorldSpace", true);
-        CreateEmitterByType(type, p);
+        if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
     }
     SetStatus("Loaded %zu emitters", emitters_.size()); MarkChanged();
 }
 
 void TuboEngine::ParticleManager::SaveSelected(const std::string& path, const std::vector<std::string>& names) {
-    nlohmann::json root; for (auto& name : names) { auto* e = Find(name); if(!e) continue; const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; root["emitters"].push_back(j);} std::ofstream ofs(path); if(!ofs){ SetStatus("SaveSelected failed"); return; } ofs<<root.dump(2); SetStatus("Saved %zu selected", root["emitters"].size()); }
+    nlohmann::json root; for (auto& name : names) { auto* e = Find(name); if(!e) continue; const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; if (auto* cyl = dynamic_cast<CylinderEmitter*>(e)) j["spinSpeedY"] = cyl->GetSpinSpeedY(); root["emitters"].push_back(j);} std::ofstream ofs(path); if(!ofs){ SetStatus("SaveSelected failed"); return; } ofs<<root.dump(2); SetStatus("Saved %zu selected", root["emitters"].size()); }
 
 void TuboEngine::ParticleManager::LoadMerge(const std::string& path) {
     std::ifstream ifs(path); if(!ifs){ SetStatus("Merge load failed"); return; } nlohmann::json root; try { root=nlohmann::json::parse(ifs); } catch (...) { SetStatus("Merge parse error"); return; }
@@ -433,7 +445,7 @@ void TuboEngine::ParticleManager::LoadMerge(const std::string& path) {
 		p.gravity = readV3("gravity", {0, -0.5f, 0});
 		TuboEngine::Math::Vector3 emPos = readV3("emitterPos", {0, 0, 0});
 		p.emitterTransform.translate = emPos;
-		CreateEmitterByType(type, p);
+		if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
 		++added;
 	}
 	SetStatus("Merged %zu emitters", added);
@@ -501,6 +513,9 @@ void TuboEngine::ParticleManager::ApplyPreviewPreset(const ParticlePreset& src, 
             break;
         case 5:
             previewEmitter_ = std::make_unique<OrbitTrailEmitter>();
+            break;
+        case 6:
+            previewEmitter_ = std::make_unique<AuraEmitter>();
             break;
         default:
             previewEmitter_ = std::make_unique<PrimitiveEmitter>();
