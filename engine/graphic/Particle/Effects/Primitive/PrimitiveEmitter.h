@@ -1,11 +1,29 @@
 #pragma once
 #include "IParticleEmitter.h"
+#include <algorithm>
 
 class PrimitiveEmitter : public IParticleEmitter {
 public:
     // public にして外部から Initialize が呼べるようにする
     void Initialize(const ParticlePreset& preset) override {
-        IParticleEmitter::Initialize(preset);
+        // 本来の Primitive は「ヒットエフェクト」: 横に細く縦に長い薄片を Z回転ランダムで複数出すと
+        // 円系テクスチャが星型/剣撃になる。preset が既定値のままの項目だけ HitEffect 用の値を補う
+        // （Aura のように scaleStart 等を明示指定する派生では下の判定を外れるので影響しない）。
+        ParticlePreset hit = preset;
+        if (hit.initialRotRangeZ.x == 0.0f && hit.initialRotRangeZ.y == 0.0f) {
+            hit.initialRotRangeZ = { 0.0f, 3.14159265f }; // Z回転を散らす
+        }
+        bool scaleAllDefault =
+            hit.scaleStart.x == 1.0f && hit.scaleStart.y == 1.0f && hit.scaleStart.z == 1.0f &&
+            hit.scaleEnd.x   == 1.0f && hit.scaleEnd.y   == 1.0f && hit.scaleEnd.z   == 1.0f &&
+            hit.scaleMin.x   == 1.0f && hit.scaleMin.y   == 1.0f && hit.scaleMin.z   == 1.0f &&
+            hit.scaleMax.x   == 1.0f && hit.scaleMax.y   == 1.0f && hit.scaleMax.z   == 1.0f;
+        if (scaleAllDefault) {
+            hit.scaleStart = { 0.025f, 0.25f, 1.0f }; // 横細・縦長の薄片
+            hit.scaleEnd   = { 0.025f, 0.25f, 1.0f };
+        }
+
+        IParticleEmitter::Initialize(hit);
         // 必要なら倍率を調整してください (例: 4.0f)
         constexpr float sizeMultiplier = 4.0f;
 
@@ -40,7 +58,11 @@ protected:
 		// 初期スケールは preset_.scaleStart を使う（UpdateParticles で補間される）
 		ParticleInfo p{};
 		p.transform.scale = preset_.scaleStart;
-		p.transform.rotate = {0, 0, 0};
+		// 本来の HitEffect: Z回転をランダムにして薄片を放射状に散らす（星型/剣撃）。
+		// UpdateParticles は rotate を上書きしないので、この回転は寿命を通して保持される。
+		float rotMin = std::min(preset_.initialRotRangeZ.x, preset_.initialRotRangeZ.y);
+		float rotMax = std::max(preset_.initialRotRangeZ.x, preset_.initialRotRangeZ.y);
+		p.transform.rotate = {0, 0, std::uniform_real_distribution<float>(rotMin, rotMax)(rng_)};
 
 		// 変更: preset_.center をオフセットとして加算するようにした
 		float rx = std::uniform_real_distribution<float>(preset_.posMin.x, preset_.posMax.x)(rng_);
