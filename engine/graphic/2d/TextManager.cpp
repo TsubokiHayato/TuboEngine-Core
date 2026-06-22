@@ -125,7 +125,7 @@ void TextManager::DrawAll() {
 // ・テキストオブジェクトの生成／編集／削除
 void TextManager::DrawImGui() {
 #ifdef USE_IMGUI
-    ImGui::Begin("TextManager", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("TextManager"));
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("TextManager")) {
 
     // レイアウトのロード/セーブ
     if (ImGui::CollapsingHeader("Layout")) {
@@ -386,7 +386,8 @@ void TextManager::DrawImGui() {
         }
     }
 
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

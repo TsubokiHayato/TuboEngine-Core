@@ -184,19 +184,22 @@ void TuboEngine::Framework::ImguiPostDraw() {
 #ifdef USE_IMGUI
 	// 「全ウィンドウ表示」がONの時だけデバッグ用ウィンドウを描画する
 	if (TuboEngine::ImGuiManager::GetInstance()->DebugWindowsVisible()) {
-		ImGui::ShowDemoWindow(TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Demo"));
+		if (*TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Demo")) {
+			ImGui::ShowDemoWindow(TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Demo"));
+		}
 		// BlendMode変更
-		ImGui::Begin("BlendNum", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("BlendNum"));
-		ImGui::Text("BlendMode");
-		ImGui::Text("0: None");
-		ImGui::Text("1: Normal");
-		ImGui::Text("2: Add");
-		ImGui::Text("3: Subtract");
-		ImGui::Text("4: Multiply");
-		ImGui::Text("5: Screen");
-		ImGui::SliderInt("BlendNum", &objectBlendModeNum, 0, 5);
-		ImGui::SliderInt("SpriteBlendNum", &spriteBlendModeNum, 0, 5);
-		ImGui::End();
+		if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("BlendNum")) {
+			ImGui::Text("BlendMode");
+			ImGui::Text("0: None");
+			ImGui::Text("1: Normal");
+			ImGui::Text("2: Add");
+			ImGui::Text("3: Subtract");
+			ImGui::Text("4: Multiply");
+			ImGui::Text("5: Screen");
+			ImGui::SliderInt("BlendNum", &objectBlendModeNum, 0, 5);
+			ImGui::SliderInt("SpriteBlendNum", &spriteBlendModeNum, 0, 5);
+		}
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 	}
 
 	// 受付終了(Render)は常に呼ぶ（メニューバーを含むフレームを確定させるため）

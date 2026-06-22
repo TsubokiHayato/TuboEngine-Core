@@ -91,7 +91,7 @@ void SceneManager::ImGuiDraw() {
 	}
 
 	//シーン選択ウィンドウ（登録された名前からデータ駆動で生成）
-	ImGui::Begin("Scene", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Scene"));
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Scene")) {
 
 	// 現在いるシーンを表示（登録名が無ければ番号のみ）
 	auto currentIt = debugNames_.find(currentSceneNo);
@@ -121,9 +121,33 @@ void SceneManager::ImGuiDraw() {
 			ImGui::PopStyleColor();
 		}
 	}
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 
 	#endif // USE_IMGUI
+}
+
+void SceneManager::DrawSceneMenuItems() {
+#ifdef USE_IMGUI
+	// 現在のシーン表示
+	auto currentIt = debugNames_.find(currentSceneNo);
+	const char* currentName = (currentIt != debugNames_.end()) ? currentIt->second.c_str() : "(no name)";
+	ImGui::Text("Current: %s (%d)", currentName, currentSceneNo);
+	ImGui::Separator();
+
+	// 登録済みシーンを列挙。クリックでそのシーンへ遷移（現在シーンにチェックを付ける）。
+	for (const auto& [no, name] : debugNames_) {
+		const bool isCurrent = (no == currentSceneNo);
+		if (ImGui::MenuItem(name.c_str(), nullptr, isCurrent)) {
+			ChangeScene(no);
+		}
+	}
+
+	ImGui::Separator();
+	if (ImGui::MenuItem("Reload current scene")) {
+		ChangeScene(currentSceneNo);
+	}
+#endif // USE_IMGUI
 }
 
 void SceneManager::ChangeScene(int sceneNo) {

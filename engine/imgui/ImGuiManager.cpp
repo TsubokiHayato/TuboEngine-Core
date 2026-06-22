@@ -1,4 +1,5 @@
 #include "ImGuiManager.h"
+#include "SceneManager.h" // メニューバーの「Scene」メニューでシーン切り替えを呼ぶ
 #ifdef USE_IMGUI
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -168,6 +169,11 @@ void ImGuiManager::Begin() {
 			}
 			ImGui::EndMenu();
 		}
+		// Scene メニュー：登録済みシーンの一覧から切り替え（SceneManager が中身を描く）
+		if (ImGui::BeginMenu("Scene")) {
+			SceneManager::GetInstance()->DrawSceneMenuItems();
+			ImGui::EndMenu();
+		}
 		// 右側にFPSを表示
 		ImGui::SameLine(ImGui::GetWindowWidth() - 96.0f);
 		ImGui::Text("FPS %.0f", ImGui::GetIO().Framerate);
@@ -206,5 +212,33 @@ bool* ImGuiManager::PanelPtr(const char* name) {
 	// 未登録なら「表示中(true)」で登録。Window メニューにこの名前が並ぶ。
 	auto result = panelOpen_.try_emplace(name, true);
 	return &result.first->second;
+}
+
+bool ImGuiManager::BeginPanel(const char* name) {
+#ifdef USE_IMGUI
+	bool* open = PanelPtr(name);
+	// フラグが false なら ImGui::Begin を呼ばない＝ウィンドウ非表示。
+	// （ImGui::Begin は *p_open==false でも自動で隠さないため、呼び出し側でスキップする必要がある）
+	if (!*open) {
+		panelBeganStack_.push_back(false);
+		return false;
+	}
+	const bool visible = ImGui::Begin(name, open); // ✕ボタンも出る（押すと *open=false）
+	panelBeganStack_.push_back(true);
+	return visible;
+#else
+	(void)name;
+	return false;
+#endif
+}
+
+void ImGuiManager::EndPanel() {
+#ifdef USE_IMGUI
+	if (panelBeganStack_.empty()) return;
+	const bool began = panelBeganStack_.back();
+	panelBeganStack_.pop_back();
+	// ImGui::Begin を呼んだ時だけ End する（呼んでいなければ End してはいけない）
+	if (began) ImGui::End();
+#endif
 }
 } // namespace TuboEngine

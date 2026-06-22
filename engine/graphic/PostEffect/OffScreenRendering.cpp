@@ -282,7 +282,7 @@ void OffScreenRendering::DrawImGui() {
 #ifdef USE_IMGUI
 	postEffectManager.DrawImGui();
 
-	ImGui::Begin("PostEffect", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("PostEffect"));
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("PostEffect")) {
 
 	static const char* effectNames[] = {
 	    "None",              // 何もしないエフェクト
@@ -308,7 +308,8 @@ void OffScreenRendering::DrawImGui() {
 		postEffectManager.SetCurrentEffect(effectIndex);
 	}
 
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 
