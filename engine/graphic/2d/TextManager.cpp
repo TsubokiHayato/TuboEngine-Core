@@ -1,5 +1,6 @@
 #include "TextManager.h"
 #include "externals/imgui/imgui.h"
+#include "ImGuiManager.h" // Window メニューでの表示/非表示制御に PanelPtr を使う
 #include <externals/nlohmann/json.hpp>
 #include <filesystem> //  ディレクトリ作成用
 #include <fstream>
@@ -124,7 +125,7 @@ void TextManager::DrawAll() {
 // ・テキストオブジェクトの生成／編集／削除
 void TextManager::DrawImGui() {
 #ifdef USE_IMGUI
-    ImGui::Begin("TextManager");
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("TextManager")) {
 
     // レイアウトのロード/セーブ
     if (ImGui::CollapsingHeader("Layout")) {
@@ -385,7 +386,8 @@ void TextManager::DrawImGui() {
         }
     }
 
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

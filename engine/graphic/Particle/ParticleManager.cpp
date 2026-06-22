@@ -257,11 +257,11 @@ void TuboEngine::ParticleManager::DrawEmittersSection() {
 
 void TuboEngine::ParticleManager::DrawImGui() {
 #ifdef USE_IMGUI
-    if (ImGui::Begin("Particle Manager")) {
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Particle Manager")) {
         static int themeId = 0; ImGui::RadioButton("Dark", &themeId, 0); ImGui::SameLine(); ImGui::RadioButton("Light", &themeId, 1); ImGui::SameLine(); ImGui::RadioButton("HiContrast", &themeId, 2); static int lastTheme=-1; if (lastTheme!=themeId) { ApplyParticleManagerTheme(themeId); lastTheme=themeId; }
         ImGui::Separator(); DrawStatusBar(); DrawEmittersSection(); DrawTemplatesSection();
     }
-    ImGui::End();
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

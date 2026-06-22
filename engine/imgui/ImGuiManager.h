@@ -1,6 +1,9 @@
 #pragma once
 #include "WinApp.h"
 #include "DirectXCommon.h"
+#include <map>
+#include <string>
+#include <vector>
 #ifdef USE_IMGUI
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_win32.h"
@@ -53,7 +56,35 @@ public:
 	/// </summary>
 	void Draw();
 
+	/// <summary>
+	/// パネル(ウィンドウ)の表示フラグへのポインタを取得する（無ければ表示=trueで登録）。
+	/// 使い方: ImGui::Begin("名前", ImGuiManager::GetInstance()->PanelPtr("名前"));
+	/// こうすると Window メニューのチェックで表示/非表示でき、[X]ボタンでも閉じられる。
+	/// </summary>
+	bool* PanelPtr(const char* name);
+
+	/// <summary>
+	/// 表示フラグ付きでウィンドウを開始する。戻り値が true の時だけ中身を描き、
+	/// 必ず EndPanel() と対で使う。フラグが false なら ImGui::Begin を呼ばず中身もスキップ＝非表示。
+	/// 使い方:  if (mgr->BeginPanel("名前")) { ...中身... }  mgr->EndPanel();
+	/// </summary>
+	bool BeginPanel(const char* name);
+	void EndPanel();
+
+	/// <summary>
+	/// 全デバッグウィンドウの一括表示フラグ（Window メニューの「全ウィンドウ表示」）。
+	/// これが false の間は、シーン/各マネージャの ImGui 描画をまるごとスキップする。
+	/// </summary>
+	bool& DebugWindowsVisible() { return debugWindowsVisible_; }
+
 private:
+	// パネル名 → 表示中か。Window メニューに列挙され、各 Begin に渡して表示制御する。
+	std::map<std::string, bool> panelOpen_;
+	// 全デバッグウィンドウの一括表示/非表示
+	bool debugWindowsVisible_ = true;
+	// BeginPanel/EndPanel の対応管理（true=ImGui::Beginを呼んだ＝Endが必要）
+	std::vector<bool> panelBeganStack_;
+
 #ifdef USE_IMGUI
 	// SRVディスクリプタヒープ
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvHeap;
