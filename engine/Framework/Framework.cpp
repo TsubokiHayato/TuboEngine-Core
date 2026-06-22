@@ -168,32 +168,38 @@ void TuboEngine::Framework::FrameworkSwapChainPostDraw() {
 
 void TuboEngine::Framework::ImguiPreDraw() {
 #ifdef USE_IMGUI
-	// ImGuiの受付開始
+	// ImGuiの受付開始（メニューバー/ドックスペースは常に出す＝再表示の操作口を残す）
 	TuboEngine::ImGuiManager::GetInstance()->Begin();
 
-	SceneManager::GetInstance()->ImGuiDraw();
-
-	OffScreenRendering::GetInstance()->DrawImGui();
+	// 「全ウィンドウ表示」がONの時だけ、シーン/各マネージャのデバッグUIを描画する。
+	// OFFにすると下記をまるごとスキップ＝全デバッグウィンドウが消える。
+	if (TuboEngine::ImGuiManager::GetInstance()->DebugWindowsVisible()) {
+		SceneManager::GetInstance()->ImGuiDraw();
+		OffScreenRendering::GetInstance()->DrawImGui();
+	}
 #endif // USE_IMGUI
 }
 
 void TuboEngine::Framework::ImguiPostDraw() {
 #ifdef USE_IMGUI
-	// ImGuiの受付終了
-	ImGui::ShowDemoWindow();
-	// BlendMode変更
-	ImGui::Begin("BlendNum");
-	ImGui::Text("BlendMode");
-	ImGui::Text("0: None");
-	ImGui::Text("1: Normal");
-	ImGui::Text("2: Add");
-	ImGui::Text("3: Subtract");
-	ImGui::Text("4: Multiply");
-	ImGui::Text("5: Screen");
-	ImGui::SliderInt("BlendNum", &objectBlendModeNum, 0, 5);
-	ImGui::SliderInt("SpriteBlendNum", &spriteBlendModeNum, 0, 5);
-	ImGui::End();
+	// 「全ウィンドウ表示」がONの時だけデバッグ用ウィンドウを描画する
+	if (TuboEngine::ImGuiManager::GetInstance()->DebugWindowsVisible()) {
+		ImGui::ShowDemoWindow(TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Demo"));
+		// BlendMode変更
+		ImGui::Begin("BlendNum", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("BlendNum"));
+		ImGui::Text("BlendMode");
+		ImGui::Text("0: None");
+		ImGui::Text("1: Normal");
+		ImGui::Text("2: Add");
+		ImGui::Text("3: Subtract");
+		ImGui::Text("4: Multiply");
+		ImGui::Text("5: Screen");
+		ImGui::SliderInt("BlendNum", &objectBlendModeNum, 0, 5);
+		ImGui::SliderInt("SpriteBlendNum", &spriteBlendModeNum, 0, 5);
+		ImGui::End();
+	}
 
+	// 受付終了(Render)は常に呼ぶ（メニューバーを含むフレームを確定させるため）
 	ImGuiManager::GetInstance()->End();
 #endif // USE_IMGUI
 }

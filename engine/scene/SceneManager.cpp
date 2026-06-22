@@ -91,7 +91,7 @@ void SceneManager::ImGuiDraw() {
 	}
 
 	//シーン選択ウィンドウ（登録された名前からデータ駆動で生成）
-	ImGui::Begin("Scene");
+	ImGui::Begin("Scene", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("Scene"));
 
 	// 現在いるシーンを表示（登録名が無ければ番号のみ）
 	auto currentIt = debugNames_.find(currentSceneNo);

@@ -282,7 +282,7 @@ void OffScreenRendering::DrawImGui() {
 #ifdef USE_IMGUI
 	postEffectManager.DrawImGui();
 
-	ImGui::Begin("PostEffect");
+	ImGui::Begin("PostEffect", TuboEngine::ImGuiManager::GetInstance()->PanelPtr("PostEffect"));
 
 	static const char* effectNames[] = {
 	    "None",              // 何もしないエフェクト
