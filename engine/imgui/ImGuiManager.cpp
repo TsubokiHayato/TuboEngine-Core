@@ -15,6 +15,15 @@ void ImGuiManager::Initialize() {
 	ImGui::CreateContext();
 	// ImGuiのスタイルを設定
 	ImGui::StyleColorsDark();
+
+#ifdef IMGUI_HAS_DOCK
+	// ウィンドウのドッキング(合体)を有効化。docking ブランチの ImGui が必要。
+	// 有効にすると、ウィンドウのタイトルバーを他ウィンドウへドラッグして
+	// タブ結合・上下左右への分割ドッキングができるようになる。
+	// （非 docking 版では IMGUI_HAS_DOCK が未定義なので、このブロックは無効）
+	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+#endif
+
 	// WinAppが正しく初期化されているか確認
 	assert(TuboEngine::WinApp::GetInstance()->GetHWND() != nullptr);
 	// ImGuiのDirectX12の初期化
