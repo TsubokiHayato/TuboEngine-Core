@@ -51,6 +51,9 @@ public:
 	void SpriteDraw();
 	//ImGui描画
 	void ImGuiDraw();
+	// メニューバー用：シーン切り替え項目を描画する（ImGui の BeginMenu("Scene") の中で呼ぶ）。
+	// 登録済みシーンを列挙し、クリックでそのシーンへ ChangeScene する。
+	void DrawSceneMenuItems();
 	// パーティクル描画
 	void ParticleDraw();
 
