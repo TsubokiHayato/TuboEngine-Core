@@ -143,6 +143,8 @@ void TextObject::Update() {
         totalWidth = maxLineWidth * scale_;
         totalHeight = height * scale_;
     }
+    totalWidth_ = totalWidth;
+    totalHeight_ = totalHeight;
 
     // 揃えに応じた原点オフセット
     float offsetX = 0.0f;
