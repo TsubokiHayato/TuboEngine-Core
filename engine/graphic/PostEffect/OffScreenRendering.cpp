@@ -75,6 +75,39 @@ void OffScreenRendering::Initialize() {
 	// PostEffectManagerの初期化
 	postEffectManager.InitializeAll();
 
+	///---------------------------------------------------------------------
+	///         ping-pong 用中間テクスチャの生成（最大4枚チェーン用）
+	///---------------------------------------------------------------------
+	{
+		auto dx = TuboEngine::DirectXCommon::GetInstance();
+		int32_t w = TuboEngine::WinApp::GetInstance()->GetClientWidth();
+		int32_t h = TuboEngine::WinApp::GetInstance()->GetClientHeight();
+
+		// 中間テクスチャ専用のRTVヒープ（2枚）
+		ppRtvHeap_ = dx->CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvStart = ppRtvHeap_->GetCPUDescriptorHandleForHeapStart();
+		uint32_t rtvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+		for (int i = 0; i < 2; ++i) {
+			ppTexture_[i] = CreateRenderTargetResource(device, w, h, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTargetClearValue);
+			ppTexture_[i]->SetName(i == 0 ? L"PingPongA" : L"PingPongB");
+			ppState_[i] = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+			// RTV
+			ppRtvHandle_[i] = rtvStart;
+			ppRtvHandle_[i].ptr += static_cast<SIZE_T>(rtvSize) * i;
+			device->CreateRenderTargetView(ppTexture_[i].Get(), nullptr, ppRtvHandle_[i]);
+
+			// SRV（DirectXCommon SRVヒープのスロット2/3）
+			D3D12_SHADER_RESOURCE_VIEW_DESC srv{};
+			srv.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+			srv.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srv.Texture2D.MipLevels = 1;
+			device->CreateShaderResourceView(ppTexture_[i].Get(), &srv, dx->GetSRVCPUDescriptorHandle(kPpSrvIndex_[i]));
+		}
+	}
+
 	// Dash用: effectNames の並びに合わせて RadialBlur の index は 8
 	// （OffScreenRendering::DrawImGui の配列と揃えておく）
 	dashEffectIndex_ = 8;
@@ -258,23 +291,53 @@ void OffScreenRendering::TransitionRenderTextureToRenderTarget() {
 /// </summary>
 void OffScreenRendering::Draw() {
 	auto dxCommon = TuboEngine::DirectXCommon::GetInstance();
-	// 4. SRV用ディスクリプタヒープをセット
+	// SRV用ディスクリプタヒープをセット
 	ID3D12DescriptorHeap* descriptorHeaps[] = {dxCommon->GetSrvDescriptorHeap().Get()};
 	commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
-	// レンダターゲットをバックバッファに切り替える
-	uint32_t backBufferIndex = dxCommon->GetSwapChain()->GetCurrentBackBufferIndex();
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dxCommon->GetRTVCPUDescriptorHandle(backBufferIndex);
-	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+	// 適用順リスト（最大kMaxStack枚）。空ならDash/VHS等の単一currentIndexを1枚だけ使う
+	std::vector<size_t> order = postEffectManager.GetEnabledOrder();
+	if (order.empty()) {
+		order = {postEffectManager.GetCurrentIndex()};
+	}
 
-	// 5. PSO・ルートシグネチャ設定
-	postEffectManager.DrawCurrent(commandList.Get());
+	// read=入力テクスチャのSRV。初回はシーン（スロット0）。
+	D3D12_GPU_DESCRIPTOR_HANDLE readSrv = dxCommon->GetSRVGPUDescriptorHandle(0);
+	int writeBuf = 0; // 書込先 ppTexture_ の番号
+	int prevBuf = -1; // 直前に読んでいたbuffer (-1=シーン)
 
-	// 6. SRV（オフスクリーンテクスチャ）をルートパラメータにセット
-	commandList->SetGraphicsRootDescriptorTable(0, dxCommon->GetSRVGPUDescriptorHandle(0));
+	for (size_t i = 0; i < order.size(); ++i) {
+		bool isLast = (i + 1 == order.size());
 
-	// 7. 全画面三角形を描画
-	commandList->DrawInstanced(3, 1, 0, 0); // 全画面三角形
+		// 出力先RTV：最後だけバックバッファ、それ以外は中間テクスチャ
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv;
+		if (isLast) {
+			uint32_t backBufferIndex = dxCommon->GetSwapChain()->GetCurrentBackBufferIndex();
+			rtv = dxCommon->GetRTVCPUDescriptorHandle(backBufferIndex);
+		} else {
+			// 書込先をレンダーターゲット状態へ
+			Transition(ppTexture_[writeBuf].Get(), ppState_[writeBuf], D3D12_RESOURCE_STATE_RENDER_TARGET);
+			rtv = ppRtvHandle_[writeBuf];
+		}
+		commandList->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
+
+		// PSO・ルートシグネチャ・CBV・個別SRV（深度等）の設定
+		postEffectManager.DrawAt(order[i], commandList.Get());
+		// 入力テクスチャをルートパラメータ0へバインド
+		commandList->SetGraphicsRootDescriptorTable(0, readSrv);
+		// 全画面三角形を描画
+		commandList->DrawInstanced(3, 1, 0, 0);
+
+		if (!isLast) {
+			// 今書いたbufferを次の入力に（RT→SRV）
+			Transition(ppTexture_[writeBuf].Get(), ppState_[writeBuf], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			readSrv = dxCommon->GetSRVGPUDescriptorHandle(kPpSrvIndex_[writeBuf]);
+			// 次の書込先＝直前に読んでいたbuffer（初回はシーンなので空いてる方へ）
+			int nextWrite = (prevBuf == -1) ? (writeBuf ^ 1) : prevBuf;
+			prevBuf = writeBuf;
+			writeBuf = nextWrite;
+		}
+	}
 }
 
 void OffScreenRendering::DrawImGui() {
@@ -284,7 +347,9 @@ void OffScreenRendering::DrawImGui() {
 
 	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("PostEffect")) {
 
-	static const char* effectNames[] = {
+	// 先頭に「(なし)」を置き、それ以降を実エフェクトにする（選択0=スキップ）
+	static const char* names[] = {
+	    "(なし)",            // スキップ
 	    "None",              // 何もしないエフェクト
 	    "GrayScale",         // グレースケールエフェクト
 	    "Sepia",             // セピアエフェクト
@@ -302,11 +367,60 @@ void OffScreenRendering::DrawImGui() {
 	    "VHS",               // VHSエフェクト
 	};
 
-	int effectIndex = static_cast<int>(postEffectManager.GetCurrentIndex());
+	// 動的な重ねがけリスト（要素値: 0=(なし), 1.. = names のインデックス）
+	// 好きなだけ追加・削除・並べ替えできる（上限は kMaxStack）
+	static std::vector<int> slots;
 
-	if (ImGui::Combo("Effect", &effectIndex, effectNames, IM_ARRAYSIZE(effectNames))) {
-		postEffectManager.SetCurrentEffect(effectIndex);
+	ImGui::Text("上から順に適用 / 現在 %d 段（最大 %d）", static_cast<int>(slots.size()), static_cast<int>(PostEffectManager::kMaxStack));
+
+	if (ImGui::Button("＋ エフェクトを追加")) {
+		if (slots.size() < PostEffectManager::kMaxStack) {
+			slots.push_back(1); // 既定は "None"
+		}
 	}
+	ImGui::SameLine();
+	if (ImGui::Button("全クリア")) {
+		slots.clear();
+	}
+
+	int removeIndex = -1;
+	int swapA = -1, swapB = -1;
+	for (int s = 0; s < static_cast<int>(slots.size()); ++s) {
+		ImGui::PushID(s);
+		std::string label = std::to_string(s + 1) + " 段目";
+		ImGui::Combo(label.c_str(), &slots[s], names, IM_ARRAYSIZE(names));
+		ImGui::SameLine();
+		if (ImGui::Button("↑") && s > 0) {
+			swapA = s;
+			swapB = s - 1;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("↓") && s + 1 < static_cast<int>(slots.size())) {
+			swapA = s;
+			swapB = s + 1;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("削除")) {
+			removeIndex = s;
+		}
+		ImGui::PopID();
+	}
+	// 編集を反映（ループ後にまとめて適用）
+	if (swapA >= 0 && swapB >= 0) {
+		std::swap(slots[swapA], slots[swapB]);
+	}
+	if (removeIndex >= 0) {
+		slots.erase(slots.begin() + removeIndex);
+	}
+
+	// 適用順を構築（(なし)=0 はスキップ）
+	std::vector<size_t> order;
+	for (int v : slots) {
+		if (v > 0) {
+			order.push_back(static_cast<size_t>(v - 1));
+		}
+	}
+	postEffectManager.SetEnabledOrder(order);
 
 	}
 	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
@@ -384,4 +498,19 @@ void OffScreenRendering::TransitionDepthTo(D3D12_RESOURCE_STATES newState) {
 	commandList->ResourceBarrier(1, &depthBarrier);
 
 	depthResourceState_ = newState; // 必ずここで更新
+}
+
+void OffScreenRendering::Transition(ID3D12Resource* res, D3D12_RESOURCE_STATES& cur, D3D12_RESOURCE_STATES next) {
+	if (cur == next) {
+		return;
+	}
+	D3D12_RESOURCE_BARRIER b{};
+	b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	b.Transition.pResource = res;
+	b.Transition.StateBefore = cur;
+	b.Transition.StateAfter = next;
+	b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	commandList->ResourceBarrier(1, &b);
+	cur = next;
 }
