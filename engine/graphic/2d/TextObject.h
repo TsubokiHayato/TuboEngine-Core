@@ -35,6 +35,13 @@ public:
     const Math::Vector4& GetColor() const { return color_; }
     float GetScale() const { return scale_; }
     Font* GetFont() const { return font_; }
+    int GetHorizontalAlign() const { return horizontalAlign_; }
+    int GetVerticalAlign() const { return verticalAlign_; }
+
+    // 文字列全体のバウンディングサイズ（直近の Update() 時点のもの）。
+    // 他オブジェクトの近くに配置する「相対アンカー」配置で使う。
+    float GetTextWidth() const { return totalWidth_; }
+    float GetTextHeight() const { return totalHeight_; }
 
     void Update();  // 文字列やパラメータ変更時に頂点を更新
     void Draw();    // Sprite と同じパイプラインで描画
@@ -68,6 +75,10 @@ private:
 
     Transform transform_{ {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
     Transform uvTransform_{ {1.0f,1.0f,1.0f},{0.0f,0.0f,0.0f},{0.0f,0.0f,0.0f} };
+
+    // 文字列全体のバウンディングサイズ（Update() で再計算）
+    float totalWidth_ = 0.0f;
+    float totalHeight_ = 0.0f;
 
     uint32_t maxCharacters_ = 256; // 最大文字数
     uint32_t currentCharacterCount_ = 0;
