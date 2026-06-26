@@ -27,11 +27,12 @@ void FlickerGlowEffect::Update()
 void FlickerGlowEffect::DrawImGui()
 {
 #ifdef USE_IMGUI
-    ImGui::Begin("FlickerGlow Effect");
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("FlickerGlow")) {
     ImGui::SliderFloat("Intensity", &params_->intensity, 0.1f, 3.0f);
     ImGui::SliderFloat("Noise", &params_->noiseAmount, 0.0f, 1.0f);
     ImGui::SliderFloat("Glow", &params_->glowStrength, 0.0f, 1.0f);
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

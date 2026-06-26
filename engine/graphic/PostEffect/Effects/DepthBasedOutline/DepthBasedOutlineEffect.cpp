@@ -17,7 +17,9 @@ void DepthBasedOutlineEffect::Initialize() {
 
 
 	
-	// SRV作成（インデックス1にSRVを作成）
+	// SRV作成（インデックス4に深度SRVを作成）
+	// ※ SRVヒープの割り当て: slot0=シーン, slot1=Dissolveマスク, slot2/3=ping-pong中間,
+	//    なので深度は slot4 を使う（slot2 だと ping-pong テクスチャに上書きされて読めない）。
 	D3D12_SHADER_RESOURCE_VIEW_DESC depthTextureSRVDesc{};
 	depthTextureSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	depthTextureSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -25,25 +27,29 @@ void DepthBasedOutlineEffect::Initialize() {
 	depthTextureSRVDesc.Texture2D.MipLevels = 1;
 
 	TuboEngine::DirectXCommon::GetInstance()->GetDevice()->CreateShaderResourceView(
-	    TuboEngine::DirectXCommon::GetInstance()->GetDepthStencliResouece().Get(), &depthTextureSRVDesc, TuboEngine::DirectXCommon::GetInstance()->GetSRVCPUDescriptorHandle(1));
+	    TuboEngine::DirectXCommon::GetInstance()->GetDepthStencliResouece().Get(), &depthTextureSRVDesc, TuboEngine::DirectXCommon::GetInstance()->GetSRVCPUDescriptorHandle(4));
 }
 
 void DepthBasedOutlineEffect::Update() {
-	// 必要に応じてProjectionMatrixを更新
-	// 例: カメラや画面サイズに応じて行列をセット
+	// カメラ未設定時に落ちないようガードする（SetMainCamera前にUpdateが来る場合がある）
+	if (!camera_) {
+		return;
+	}
+	// カメラのProjection逆行列を更新（深度→ビュー空間復元用）
 	materialCBData_->projectionInverse = TuboEngine::Math::Inverse(camera_->GetProjectionMatrix());
 }
 
 void DepthBasedOutlineEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-	ImGui::Begin("DepthBasedOutlineEffect");
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("DepthBasedOutline")) {
 	// 必要に応じてImGuiでパラメータ調整
 	ImGui::ColorEdit4("Outline Color", &materialCBData_->outlineColor.x);
 	ImGui::SliderFloat("Outline Thickness", &materialCBData_->outlineThickness, 0.0f, 10.0f);
 	ImGui::SliderFloat("Outline Depth Threshold", &materialCBData_->outlineDepthThreshold, 0.0f, 1.0f);
 
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 
@@ -59,5 +65,5 @@ void DepthBasedOutlineEffect::SetMainCamera(TuboEngine::Camera* camera) {
 void DepthBasedOutlineEffect::Draw(ID3D12GraphicsCommandList* commandList) {
 	pso_->DrawSettingsCommon();
 	commandList->SetGraphicsRootConstantBufferView(1, materialCB_->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::DirectXCommon::GetInstance()->GetSRVGPUDescriptorHandle(1));
+	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::DirectXCommon::GetInstance()->GetSRVGPUDescriptorHandle(4));
 }

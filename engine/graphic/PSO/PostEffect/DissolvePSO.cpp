@@ -16,16 +16,27 @@ void DissolvePSO::CreateGraphicPipeline() {
 
 
 void DissolvePSO::CreateRootSignature() {
-    D3D12_ROOT_PARAMETER rootParameters[2] = {};
+    // ※ 以前は param0 を「t0,t1 の2連続テーブル」にして slot0 起点で読んでいたが、
+    //    重ねがけ（ping-pong）で入力(t0)のスロットが動くと t1(マスク) が破綻する。
+    //    そこでマスク(t1)を専用の param2 で明示バインドする方式に変更した。
+    D3D12_ROOT_PARAMETER rootParameters[3] = {};
 
-    // 0: SRV
-    D3D12_DESCRIPTOR_RANGE srvRange = {};
-    srvRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    srvRange.NumDescriptors = 2;
-    srvRange.BaseShaderRegister = 0;
-    srvRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    // t0: gTexture（入力）
+    D3D12_DESCRIPTOR_RANGE srvRangeTex = {};
+    srvRangeTex.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    srvRangeTex.NumDescriptors = 1;
+    srvRangeTex.BaseShaderRegister = 0;
+    srvRangeTex.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    // t1: gMaskTexture（マスク）
+    D3D12_DESCRIPTOR_RANGE srvRangeMask = {};
+    srvRangeMask.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    srvRangeMask.NumDescriptors = 1;
+    srvRangeMask.BaseShaderRegister = 1;
+    srvRangeMask.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+    // 0: SRV (t0) - gTexture（入力。マネージャがバインド）
     rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    rootParameters[0].DescriptorTable.pDescriptorRanges = &srvRange;
+    rootParameters[0].DescriptorTable.pDescriptorRanges = &srvRangeTex;
     rootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
     rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
@@ -34,6 +45,12 @@ void DissolvePSO::CreateRootSignature() {
     rootParameters[1].Descriptor.ShaderRegister = 0;
     rootParameters[1].Descriptor.RegisterSpace = 0;
     rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+    // 2: SRV (t1) - gMaskTexture（Dissolve側で明示バインド）
+    rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    rootParameters[2].DescriptorTable.pDescriptorRanges = &srvRangeMask;
+    rootParameters[2].DescriptorTable.NumDescriptorRanges = 1;
+    rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
     // サンプラ
     D3D12_STATIC_SAMPLER_DESC sampler = {};

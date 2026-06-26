@@ -51,19 +51,21 @@ void DissolveEffect::Update() {
 void DissolveEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-	ImGui::Begin("Dissolve Effect");
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Dissolve")) {
 	ImGui::SliderFloat("Dissolve Threshold", &params_->dissolveThreshold, 0.0f, 1.0f);
 	ImGui::ColorEdit3("Edge Color", &params_->edgeColor.x);
 	ImGui::SliderFloat("Edge Strength", &params_->edgeStrength, 0.0f, 5.0f);
 	ImGui::SliderFloat("Edge Width", &params_->edgeWidth, 0.0f, 1.0f);
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 void DissolveEffect::Draw(ID3D12GraphicsCommandList* commandList) {
 	// PSO・ルートシグネチャ設定
 	pso_->DrawSettingsCommon();
-	// SRVやCBVのバインドはマネージャ側で行う場合は不要
-	// ここでCBVをバインドする場合:
+	// 入力テクスチャ(t0)はマネージャがparam0でバインドする。
 	commandList->SetGraphicsRootConstantBufferView(1, cbResource_->GetGPUVirtualAddress());
+	// マスク(t1)を専用param2で明示バインド（slot1）
+	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::DirectXCommon::GetInstance()->GetSRVGPUDescriptorHandle(1));
 }
 

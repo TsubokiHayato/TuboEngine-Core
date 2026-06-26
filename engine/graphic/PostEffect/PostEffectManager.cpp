@@ -34,6 +34,18 @@ void PostEffectManager::DrawCurrent(ID3D12GraphicsCommandList* commandList) {
 }
 
 void PostEffectManager::DrawImGui() {
+    // 重ねがけ中は有効な各エフェクトの調整窓を出す（同じindexは1回だけ）。
+    if (!enabledOrder_.empty()) {
+        std::vector<bool> shown(effects_.size(), false);
+        for (size_t idx : enabledOrder_) {
+            if (idx < effects_.size() && !shown[idx]) {
+                effects_[idx]->DrawImGui();
+                shown[idx] = true;
+            }
+        }
+        return;
+    }
+    // 重ねがけが空のときは従来どおり現在のエフェクト1個分だけ。
     if (currentIndex_ < effects_.size()) {
         effects_[currentIndex_]->DrawImGui();
     }

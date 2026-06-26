@@ -31,11 +31,12 @@ void RadialBlurEffect::Update() {}
 void RadialBlurEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-    ImGui::Begin("Radial Effect");
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("RadialBlur")) {
 	
 	ImGui::DragFloat("Radial Blur Power", &params_->radialBlurPower, 0.01f,0.0f, 10.0f);
 	ImGui::SliderFloat2("Radial Blur Center X", &params_->radialBlurCenter.x, 0.0f, 1.0f);
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 

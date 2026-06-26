@@ -31,10 +31,11 @@ void VignetteEffect::Update() {
 void VignetteEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-	ImGui::Begin("Vignette Effect");
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Vignette")) {
 	ImGui::SliderFloat("Vignette Scale", &params_->vignetteScale, 0.0f, 32.0f);
 	ImGui::SliderFloat("Vignette Power", &params_->vignettePower, 0.0f, 10.0f);
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 
