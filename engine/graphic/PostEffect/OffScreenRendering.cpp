@@ -2,6 +2,7 @@
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
 #include "WinApp.h"
+#include "SceneTransition.h"
 
 #include "Effects/Bloom/BloomEffect.h"
 #include "Effects/Dissolve/DissolveEffect.h"

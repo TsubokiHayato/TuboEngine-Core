@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 #include"ImGuiManager.h"
+#include"SceneTransition.h" // ルービック風シーンチェンジ演出
 #include"Logger.h"   // 未登録シーン検知のログ出力
 #include <cassert>
 #include <format>
@@ -27,10 +28,14 @@ void SceneManager::Update() {
 		return;
 	}
 
-	// ChangeScene による遷移リクエストがあれば、ここで切り替える。
+	// ルービック遷移の進行を更新
+	SceneTransition::GetInstance()->Update();
+
+	// ChangeScene による遷移リクエストがある場合、遷移アニメが画面を覆い切った瞬間
+	// （ConsumeMidpoint）に実際のシーン差し替えを行う。これにより切り替わりが隠れる。
 	//   requestedSceneNo_ >= 0 : 別シーンへ遷移
 	//   forceReload_           : 同じシーンを作り直す
-	if (requestedSceneNo_ >= 0 || forceReload_) {
+	if ((requestedSceneNo_ >= 0 || forceReload_) && SceneTransition::GetInstance()->ConsumeMidpoint()) {
 		//現在のシーンを後始末
 		currentScene->Finalize();
 
@@ -60,6 +65,8 @@ void SceneManager::Finalize() {
 		//終了処理
 		currentScene->Finalize();
 	}
+	// 遷移演出の後始末
+	SceneTransition::GetInstance()->Finalize();
 	delete instance;
 	instance = nullptr;
 
@@ -151,13 +158,18 @@ void SceneManager::DrawSceneMenuItems() {
 }
 
 void SceneManager::ChangeScene(int sceneNo) {
+	// 遷移アニメ中の多重リクエストは無視（演出が乱れるのを防ぐ）
+	if (SceneTransition::GetInstance()->IsActive()) {
+		return;
+	}
 	// 現在と同じ番号ならリロード、違えば遷移リクエストとして積む。
-	// 実際の切り替えは次の Update() で行う。
 	if (sceneNo == currentSceneNo) {
 		forceReload_ = true;
 	} else {
 		requestedSceneNo_ = sceneNo;
 	}
+	// ルービック風の遷移演出を開始。実際の差し替えはカバー完了時(Update内)に行う。
+	SceneTransition::GetInstance()->Start();
 }
 
 void SceneManager::ParticleDraw() {
