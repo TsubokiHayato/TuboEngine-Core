@@ -6,12 +6,16 @@
 #include "ToonPSO.h"
 #include "Vector3.h"
 
+// HLSL の cbuffer は 16バイト境界規則で float3 が境界をまたげない。
+// C++ 側も同じ配置になるよう pad を挟んで合わせる（これを怠ると色がズレて読まれる）。
 struct ToonParams {
-	int stepCount = 3;
-	float toonRate;
-	TuboEngine::Math::Vector3 shadowColor;
-	TuboEngine::Math::Vector3 highlightColor;
-	float padding[2]; // HLSLと同じサイズになるように
+	int stepCount = 3;                        // c0.x
+	float toonRate;                           // c0.y
+	float _pad0[2];                           // c0.zw
+	TuboEngine::Math::Vector3 shadowColor;    // c1.xyz
+	float _pad1;                              // c1.w
+	TuboEngine::Math::Vector3 highlightColor; // c2.xyz
+	float _pad2;                              // c2.w
 };
 
 class ToonEffect : public PostEffectBase {

@@ -19,18 +19,10 @@ void ToonEffect::Initialize() {
 	// デフォルト値
 	toonParams_->stepCount = 3;
 	toonParams_->toonRate = 0.5f; // トゥーンレートの初期値
-	toonParams_->shadowColor = TuboEngine::Math::Vector3(0.0f, 0.0f, 0.0f); // シャドウカラーの初期値
-	toonParams_->highlightColor = TuboEngine::Math::Vector3(0.0f, 0.0f, 0.0f); // シャドウカラーの初期値
-
-	// SRV作成（インデックス1にSRVを作成）
-	D3D12_SHADER_RESOURCE_VIEW_DESC depthTextureSRVDesc{};
-	depthTextureSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-	depthTextureSRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	depthTextureSRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	depthTextureSRVDesc.Texture2D.MipLevels = 1;
-
-	TuboEngine::DirectXCommon::GetInstance()->GetDevice()->CreateShaderResourceView(
-	    TuboEngine::DirectXCommon::GetInstance()->GetDepthStencliResouece().Get(), &depthTextureSRVDesc, TuboEngine::DirectXCommon::GetInstance()->GetSRVCPUDescriptorHandle(1));
+	toonParams_->shadowColor = TuboEngine::Math::Vector3(0.0f, 0.0f, 0.0f);    // 影色の初期値（黒）
+	toonParams_->highlightColor = TuboEngine::Math::Vector3(1.0f, 1.0f, 1.0f); // ハイライト色の初期値（白）
+	// ※ このToonは輝度ベース。Toon.PS.hlsl は深度テクスチャ(t1)を使わないため、
+	//   以前あった深度SRVの作成(slot1)は削除した（Dissolveのマスクと衝突する原因だった）。
 }
 
 void ToonEffect::Update() {
@@ -40,19 +32,19 @@ void ToonEffect::Update() {
 void ToonEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-	ImGui::Begin("ToonEffect");
+	if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Toon")) {
 	ImGui::SliderInt("Step Count", &toonParams_->stepCount,1, 20);
 	ImGui::DragFloat("Toon Rate", &toonParams_->toonRate, 0.01f, 0.0f, 1.0f, "%.2f");
 	ImGui::ColorEdit3("Shadow Color", &toonParams_->shadowColor.x);
 	ImGui::ColorEdit3("Highlight Color", &toonParams_->highlightColor.x);
-	ImGui::End();
+	}
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 void ToonEffect::Draw(ID3D12GraphicsCommandList* commandList) {
 	pso_->DrawSettingsCommon();
-	// SRV等のセットはマネージャ側で
+	// 入力テクスチャ(t0)のバインドはマネージャ側で。ここではCBVのみ。
 	commandList->SetGraphicsRootConstantBufferView(1, toonCB_->GetGPUVirtualAddress());
-	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::DirectXCommon::GetInstance()->GetSRVGPUDescriptorHandle(1));
 }
 
 void ToonEffect::SetMainCamera(TuboEngine::Camera* camera) {

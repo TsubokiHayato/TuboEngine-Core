@@ -33,11 +33,12 @@ void VHSEffect::Update() {
 
 void VHSEffect::DrawImGui() {
 #ifdef USE_IMGUI
-    ImGui::Begin("VHS Effect");
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("VHS")) {
     ImGui::SliderFloat("Intensity", &params_->intensity, 0.0f, 2.0f);
     ImGui::SliderFloat("Scanline", &params_->scanlineIntensity, 0.0f, 2.0f);
     ImGui::SliderFloat("Chromatic Aberration", &params_->chromaticAberration, 0.0f, 5.0f);
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

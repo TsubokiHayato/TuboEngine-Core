@@ -40,11 +40,12 @@ void randomEffect::Update() {
 void randomEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-    ImGui::Begin("Random Effect");
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Random")) {
     // timeは自動で進むので表示のみ
     ImGui::Text("Time: %.2f", params_->time);
    
-    ImGui::End();
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 

@@ -70,6 +70,10 @@ public:
 
 	void TransitionDepthTo(D3D12_RESOURCE_STATES newState);
 
+	// 任意リソースを現在状態(cur)から目標状態(next)へ遷移する（curは更新される）
+	// ping-pongチェーンのバリア管理用
+	void Transition(ID3D12Resource* res, D3D12_RESOURCE_STATES& cur, D3D12_RESOURCE_STATES next);
+
 	/// <summary>
 	/// 描画処理
 	/// レンダーテクスチャへの描画を行います。
@@ -136,6 +140,17 @@ private:
 
 	// レンダーテクスチャリソース
 	Microsoft::WRL::ComPtr<ID3D12Resource> renderTextureResource_;
+
+	///-----------------------------------------------------------------------
+	///         ping-pong 用中間テクスチャ（最大4枚チェーン用）
+	///-----------------------------------------------------------------------
+	Microsoft::WRL::ComPtr<ID3D12Resource> ppTexture_[2];
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> ppRtvHeap_;
+	D3D12_CPU_DESCRIPTOR_HANDLE ppRtvHandle_[2]{};
+	// 各中間テクスチャの現在状態（フレームをまたいで追跡）
+	D3D12_RESOURCE_STATES ppState_[2] = {D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_RENDER_TARGET};
+	// DirectXCommon SRVヒープ内のスロット（0=シーン,1=深度/マスク は使用済みなので2,3）
+	static constexpr uint32_t kPpSrvIndex_[2] = {2, 3};
 
 	// レンダーテクスチャの現在の状態
 	D3D12_RESOURCE_STATES renderTextureState = D3D12_RESOURCE_STATE_RENDER_TARGET;

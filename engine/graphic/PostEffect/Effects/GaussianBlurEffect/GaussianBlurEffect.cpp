@@ -30,9 +30,10 @@ void GaussianBlurEffect::Update() {}
 void GaussianBlurEffect::DrawImGui() {
 
 #ifdef USE_IMGUI
-    ImGui::Begin("Vignette Effect");
-    ImGui::SliderFloat("Vignette Scale", &params_->sigma, 0.0f, 32.0f);
-    ImGui::End();
+    if (TuboEngine::ImGuiManager::GetInstance()->BeginPanel("GaussianBlur")) {
+    ImGui::SliderFloat("Sigma", &params_->sigma, 0.0f, 32.0f);
+    }
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 
