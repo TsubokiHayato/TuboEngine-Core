@@ -224,7 +224,6 @@
     <ClCompile Include="..\engine\graphic\PSO\Particle\ParticlePSO.cpp" />
     <ClCompile Include="..\engine\graphic\PSO\Object\PSO.cpp" />
     <ClCompile Include="..\engine\scene\SceneManager.cpp" />
-    <ClCompile Include="..\engine\scene\SceneTransition.cpp" />
     <ClCompile Include="..\engine\base\Common\SrvManager.cpp" />
     <ClCompile Include="..\engine\graphic\PSO\Blend\NoneBlendPSO.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\None\NoneEffect.cpp" />
@@ -323,7 +322,6 @@
     <ClInclude Include="..\engine\graphic\PSO\Particle\ParticlePSO.h" />
     <ClInclude Include="..\engine\graphic\PSO\Object\PSO.h" />
     <ClInclude Include="..\engine\scene\SceneManager.h" />
-    <ClInclude Include="..\engine\scene\SceneTransition.h" />
     <ClInclude Include="..\engine\base\Common\SrvManager.h" />
     <ClInclude Include="..\engine\graphic\PSO\Blend\NoneBlendPSO.h" />
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\GaussianBlurEffect\GaussianBlurEffect.h" />
