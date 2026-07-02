@@ -38,7 +38,7 @@ public:
     /// </summary>
     void UpdateAll();
     /// <summary>
-    /// All の描画。
+    /// 全テキストの描画。
     /// </summary>
     void DrawAll();
     /// <summary>
@@ -133,15 +133,15 @@ public:
     Font* GetFont(const std::string& name);
 
     /// <summary>
-    /// FontFromProject の読み込み。
+    /// プロジェクト内のフォントファイルを読み込む。
     /// </summary>
     Font* LoadFontFromProject(const std::string& name, const std::string& fileName, float size = 32.0f);
     /// <summary>
-    /// FontFromExternal の読み込み。
+    /// 外部パスのフォントファイルを読み込む。
     /// </summary>
     Font* LoadFontFromExternal(const std::string& name, const std::string& fileName, float size = 32.0f);
     /// <summary>
-    /// FontFromWindows の読み込み。
+    /// Windowsシステムフォントを読み込む。
     /// </summary>
     Font* LoadFontFromWindows(const std::string& name, const std::string& fileName, float size = 32.0f);
 
@@ -157,7 +157,7 @@ public:
         float scale = 1.0f
     );
     /// <summary>
-    /// Text を削除する。
+    /// 指定テキストを削除する。
     /// </summary>
     void RemoveText(TextObject* text);
 
@@ -182,6 +182,9 @@ public:
         const Math::Vector2& size = {160.0f, 160.0f},
         const Math::Vector4& color = {1.0f, 1.0f, 1.0f, 1.0f}
     );
+    /// <summary>
+    /// スプライトを削除する。
+    /// </summary>
     void RemoveSprite(Sprite* sprite);
 
     // 画面端アンカー指定でスプライトを作成する便利関数。

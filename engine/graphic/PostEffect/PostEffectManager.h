@@ -28,7 +28,7 @@ public:
     void SetCurrentEffect(size_t index);
 
     /// <summary>
-    /// Current の描画。
+    /// 現在選択中のポストエフェクトを描画する。
     /// </summary>
     void DrawCurrent(ID3D12GraphicsCommandList* commandList);
 
@@ -49,6 +49,9 @@ public:
             }
         }
     }
+    /// <summary>
+    /// 適用順リストを取得する。
+    /// </summary>
     const std::vector<size_t>& GetEnabledOrder() const { return enabledOrder_; }
 
     // 指定indexのエフェクトのDraw（PSO/CBV/個別SRV）だけを呼ぶ

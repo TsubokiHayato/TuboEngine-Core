@@ -39,7 +39,7 @@ struct SdfObstacle {
     TuboEngine::Math::Vector3 velocity = {};
 
     /// <summary>
-    /// Container かどうかを取得する。
+    /// コンテナ（容器）形状かどうかを取得する。
     /// </summary>
     bool IsContainer() const {
         return type == Type::SphereContainer
@@ -156,7 +156,7 @@ public:
                               const std::string& label = "");
 
     /// <summary>
-    /// Obstacles を消去する。
+    /// 障害物をすべて消去する。
     /// </summary>
     void ClearObstacles();
 

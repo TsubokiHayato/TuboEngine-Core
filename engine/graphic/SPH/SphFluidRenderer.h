@@ -44,17 +44,17 @@ public:
     void Finalize();
 
     /// <summary>
-    /// DepthPass の描画。
+    /// 深度パスの描画（粒子を深度テクスチャへ描画）。
     /// </summary>
     void DrawDepthPass(int instSrvIdx, int particleCount,
                        const TuboEngine::Math::Matrix4x4& view,
                        const TuboEngine::Math::Matrix4x4& proj);
     /// <summary>
-    /// BlurPass の描画。
+    /// ブラーパスの描画（深度をバイラテラルブラーで平滑化）。
     /// </summary>
     void DrawBlurPass();
     /// <summary>
-    /// ShadePass の描画。
+    /// シェーディングパスの描画（法線再構築とフレネル反射で合成）。
     /// </summary>
     void DrawShadePass(D3D12_CPU_DESCRIPTOR_HANDLE targetRTV,
                        D3D12_CPU_DESCRIPTOR_HANDLE targetDSV,
@@ -68,15 +68,15 @@ public:
 
 private:
     /// <summary>
-    /// RTs の生成。
+    /// レンダーターゲット群の生成。
     /// </summary>
     void CreateRTs(int w, int h);
     /// <summary>
-    /// PSOs の生成。
+    /// 各パスのPSOの生成。
     /// </summary>
     void CreatePSOs();
     /// <summary>
-    /// RootSig の生成。
+    /// ルートシグネチャの生成。
     /// </summary>
     void CreateRootSig(bool withSampler, Microsoft::WRL::ComPtr<ID3D12RootSignature>& outRS);
     /// <summary>

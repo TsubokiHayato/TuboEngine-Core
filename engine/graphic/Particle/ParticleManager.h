@@ -68,7 +68,7 @@ public:
 	/// </summary>
 	void SaveAll(const std::string& filePath);
 	/// <summary>
-	/// All の読み込み。
+	/// 全プリセットをファイルから読み込む。
 	/// </summary>
 	void LoadAll(const std::string& filePath);
 	/// <summary>
@@ -76,7 +76,7 @@ public:
 	/// </summary>
 	void SaveSelected(const std::string& filePath, const std::vector<std::string>& names);
 	/// <summary>
-	/// Merge の読み込み。
+	/// ファイルから読み込んで既存プリセットへマージする。
 	/// </summary>
 	void LoadMerge(const std::string& filePath);
 
@@ -116,11 +116,11 @@ private:
 	/// </summary>
 	void CaptureHistory();
 	/// <summary>
-	/// Snapshot を適用する。
+	/// スナップショット（JSON）を適用して状態を復元する。
 	/// </summary>
 	void ApplySnapshot(const std::string& jsonStr);
 	/// <summary>
-	/// SnapshotJson を構築する。
+	/// 現在の状態からスナップショットJSONを構築する。
 	/// </summary>
 	std::string BuildSnapshotJson() const;
 	/// <summary>
@@ -132,15 +132,15 @@ private:
 	/// </summary>
 	void MarkChanged();
 	/// <summary>
-	/// StatusBar の描画。
+	/// ステータスバーのImGui描画。
 	/// </summary>
 	void DrawStatusBar();
 	/// <summary>
-	/// TemplatesSection の描画。
+	/// テンプレート一覧セクションのImGui描画。
 	/// </summary>
 	void DrawTemplatesSection();
 	/// <summary>
-	/// EmittersSection の描画。
+	/// エミッター一覧セクションのImGui描画。
 	/// </summary>
 	void DrawEmittersSection();
 	enum class PendingActionType { None, DeleteEmitter, ClearEmitter, LoadAll, LoadMergeSelected, UndoAction, RedoAction };

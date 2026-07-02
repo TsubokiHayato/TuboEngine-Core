@@ -23,9 +23,7 @@ public:
 	/// <summary>
 	/// 初期化処理
 	/// </summary>
-	/// <param name="spriteCommon">スプライトの共通情報を保持するポインタ。</param>
-	/// /// <param name="dxCommon">WinAppを保持するポインタ。</param>
-	/// <param name="dxCommon">DirectXの共通情報を保持するポインタ。</param>
+	/// <param name="textureFilePath">テクスチャファイルパス</param>
 	void Initialize(std::string textureFilePath);
 
 	/// <summary>

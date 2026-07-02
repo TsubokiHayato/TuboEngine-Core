@@ -1,6 +1,6 @@
 #pragma once
 #include "DirectXCommon.h"
-#include "IParticleEmitter.h" // 重複回避のため追加
+#include "IParticleEmitter.h" // ParticleInfo / ParticleForGPU の共通定義を使用
 #include "Material.h"
 #include "SrvManager.h"
 #include "TextureManager.h"

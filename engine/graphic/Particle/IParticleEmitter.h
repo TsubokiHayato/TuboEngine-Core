@@ -47,7 +47,7 @@ struct ParticlePreset {
 	uint32_t maxInstances = 128;
 	bool billboard = true;
 
-	TuboEngine::Math::Vector3 center{0,0,0};              // 追加: 発生中心
+	TuboEngine::Math::Vector3 center{0,0,0};              // 発生中心
 	TuboEngine::Math::Vector3 posMin{0,0,0}, posMax{0,0,0};
 	TuboEngine::Math::Vector3 velMin{0,0,0}, velMax{0,0,0};
 	TuboEngine::Math::Vector3 scaleMin{1,1,1}, scaleMax{1,1,1};
@@ -89,13 +89,13 @@ public:
 	virtual const std::string& GetName() const { return preset_.name; }
 	virtual void DrawImGui(); // 直接呼ばれない（Manager側で統合表示）。残しつつ利用可能。
 
-	// 追加: 全粒子消去（Debug用途）
+	// 全粒子消去（Debug用途）
 	void ClearAll() {
 		particles_.clear();
 		instanceCount_ = 0;
 	}
 
-	// 追加: インスタンスバッファ再確保 (maxInstances 変更対応)
+	// インスタンスバッファ再確保 (maxInstances 変更対応)
 	void ReallocateInstanceBufferIfNeeded();
 
 protected:

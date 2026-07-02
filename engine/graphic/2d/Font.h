@@ -92,7 +92,7 @@ private:
     /// </summary>
     bool CreateAtlasResource();
     /// <summary>
-    /// GlyphToAtlas を追加する。
+    /// グリフをフォントアトラスに追加する。
     /// </summary>
     bool AddGlyphToAtlas(char32_t codePoint);
     /// <summary>
