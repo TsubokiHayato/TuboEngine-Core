@@ -11,15 +11,39 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// テキストオブジェクト（TextObject）の生成・更新・描画を統括するクラス。
+/// </summary>
 class TextManager {
 public:
+    /// <summary>
+    /// シングルトンインスタンスの取得。
+    /// </summary>
     static TextManager* GetInstance();
+    /// <summary>
+    /// シングルトンインスタンスの破棄。
+    /// </summary>
     static void DestroyInstance();
 
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize();
+    /// <summary>
+    /// 終了処理。
+    /// </summary>
     void Finalize();
+    /// <summary>
+    /// 全要素の一括更新。
+    /// </summary>
     void UpdateAll();
+    /// <summary>
+    /// All の描画。
+    /// </summary>
     void DrawAll();
+    /// <summary>
+    /// ImGuiによるデバッグ表示。
+    /// </summary>
     void DrawImGui();
 
     // 画面上の置き場所プリセット（テキスト/スプライトを上下左右に楽に配置するための機能）。
@@ -43,6 +67,9 @@ public:
     };
 
     // よく使うフォント名
+    /// <summary>
+    /// よく使うフォント名のプリセット定義。
+    /// </summary>
     struct PresetFontNames {
         static inline const std::string Best10             = "Best10";
         static inline const std::string SoukouMincho       = "SoukouMincho";
@@ -50,7 +77,9 @@ public:
         static inline const std::string YasashisaGothicBold = "YasashisaGothicBold-V2";
     };
 
-    // テキスト定義（保存用）
+    /// <summary>
+    /// テキスト定義（保存用）。
+    /// </summary>
     struct TextDefinition {
         std::string name;        // 識別名
         std::string text;        // 表示文字列 (UTF-8)
@@ -103,8 +132,17 @@ public:
     Font* LoadFont(const std::string& name, const std::string& filePath, float size = 32.0f);
     Font* GetFont(const std::string& name);
 
+    /// <summary>
+    /// FontFromProject の読み込み。
+    /// </summary>
     Font* LoadFontFromProject(const std::string& name, const std::string& fileName, float size = 32.0f);
+    /// <summary>
+    /// FontFromExternal の読み込み。
+    /// </summary>
     Font* LoadFontFromExternal(const std::string& name, const std::string& fileName, float size = 32.0f);
+    /// <summary>
+    /// FontFromWindows の読み込み。
+    /// </summary>
     Font* LoadFontFromWindows(const std::string& name, const std::string& fileName, float size = 32.0f);
 
     // ベース名とサイズからフォントを取得/生成（BaseFont/AddFont 用の SizeFont を生成）
@@ -118,6 +156,9 @@ public:
         const Math::Vector4& color = {1.0f, 1.0f, 1.0f, 1.0f},
         float scale = 1.0f
     );
+    /// <summary>
+    /// Text を削除する。
+    /// </summary>
     void RemoveText(TextObject* text);
 
     // 画面端アンカー指定でテキストを作成する便利関数。
@@ -177,8 +218,17 @@ private:
     void ApplyRelativeAnchorToText(TextDefinition& def, TextObject* obj) const;
     void ApplyRelativeAnchorToSprite(SpriteDefinition& def, Sprite* obj) const;
 
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     TextManager() = default;
+    /// <summary>
+    /// デストラクタ。
+    /// </summary>
     ~TextManager() = default;
+    /// <summary>
+    /// コピー禁止。
+    /// </summary>
     TextManager(const TextManager&) = delete;
     TextManager& operator=(const TextManager&) = delete;
 

@@ -9,6 +9,9 @@
 
 class Camera;
 namespace TuboEngine {
+/// <summary>
+/// 3Dオブジェクト描画の共通設定（PSO・ルートシグネチャ・共通カメラ）を管理するクラス。
+/// </summary>
 class Object3dCommon {
 public:
 	/// <summary>
@@ -25,8 +28,17 @@ public:
 private:
 	// コンストラクタ・デストラクタ・コピー禁止
 	static Object3dCommon* instance; // シングルトンインスタンス
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	Object3dCommon() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~Object3dCommon() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	Object3dCommon(const Object3dCommon&) = delete;
 	Object3dCommon& operator=(const Object3dCommon&) = delete;
 
@@ -36,6 +48,9 @@ public:
 	/// </summary>
 	void Initialize();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	/// <summary>
@@ -56,6 +71,9 @@ public:
 	        GETTER & SETTER
 	---------------------------------------------------*/
 
+	/// <summary>
+	/// デフォルトカメラの取得・設定。
+	/// </summary>
 	void SetDefaultCamera(TuboEngine::Camera* camera) { defaultCamera = camera; }
 	TuboEngine::Camera* GetDefaultCamera() const { return defaultCamera; }
 

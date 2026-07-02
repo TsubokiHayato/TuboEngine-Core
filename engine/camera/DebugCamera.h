@@ -23,8 +23,17 @@ public:
 	/// </summary>
 	void Update(Camera* target);
 
+	/// <summary>
+	/// 有効フラグを設定する。
+	/// </summary>
 	void SetActive(bool active);
+	/// <summary>
+	/// 有効フラグの有効/無効を切り替える。
+	/// </summary>
 	void ToggleActive() { SetActive(!active_); }
+	/// <summary>
+	/// 有効フラグかどうかを取得する。
+	/// </summary>
 	bool IsActive() const { return active_; }
 
 	/// <summary>ImGui デバッグ表示</summary>

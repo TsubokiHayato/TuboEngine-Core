@@ -5,6 +5,9 @@
 
 // ブレンドモードをパラメータ化したPSO
 // これまで Add/Normal/Subtract/Multiply/Screen ごとに分けていたクラスを集約
+/// <summary>
+/// ブレンドモード別のPSOを一括生成・保持するクラス。
+/// </summary>
 class BlendPSO
 {
 public:
@@ -18,6 +21,9 @@ public:
 	/// </summary>
 	void DrawSettingsCommon();
 
+	/// <summary>
+	/// ブレンドモードを取得する。
+	/// </summary>
 	BlendMode GetBlendMode() const { return blendMode_; }
 
 	/// <summary>
@@ -26,8 +32,17 @@ public:
 	void SetBlendMode(BlendMode newMode);
 
 private:
+	/// <summary>
+	/// ルートシグネチャの生成。
+	/// </summary>
 	void CreateRootSignature();
+	/// <summary>
+	/// グラフィックスパイプラインステートの生成。
+	/// </summary>
 	void CreateGraphicPipeline();
+	/// <summary>
+	/// ブレンドステートの設定。
+	/// </summary>
 	void SetupBlendState();
 
 	// 内部 helper: 実際のパイプラインステートのみを（必要に応じて）作成

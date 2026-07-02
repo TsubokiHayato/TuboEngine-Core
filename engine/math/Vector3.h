@@ -6,6 +6,9 @@
 
 namespace TuboEngine::Math {
 
+/// <summary>
+/// 3次元ベクトル。
+/// </summary>
 struct Vector3
 {
 	float x;
@@ -106,30 +109,45 @@ struct Vector3
 
 	// ベクトルの長さを計算する関数
 
+	/// <summary>
+	/// 長さ（ノルム）を計算する。
+	/// </summary>
 	float Length() const {
 		return std::sqrt(LengthSquared());
 	}
 
 	// ベクトルの長さの2乗を計算する関数
 
+	/// <summary>
+	/// 長さの2乗を計算する。
+	/// </summary>
 	float LengthSquared() const {
 		return x * x + y * y + z * z;
 	}
 
 	// ベクトルを正規化する関数
 
+	/// <summary>
+	/// 正規化する。
+	/// </summary>
 	void Normalize() {
 		*this /= Length();
 	}
 
 	// ベクトルの内積を計算する関数
 
+	/// <summary>
+	/// 内積を計算する。
+	/// </summary>
 	static float Dot(const Vector3& v1, const Vector3& v2) {
 		return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 	}
 
 	// ベクトルの外積を計算する関数
 
+	/// <summary>
+	/// 外積を計算する。
+	/// </summary>
 	static Vector3 Cross(const Vector3& v1, const Vector3& v2) {
 		Vector3 result;
 		result.x = v1.y * v2.z - v1.z * v2.y;
@@ -140,12 +158,18 @@ struct Vector3
 
 	// ベクトルを正規化する関数
 
+	/// <summary>
+	/// 正規化する。
+	/// </summary>
 	static Vector3 Normalize(const Vector3& vec) {
 		return vec / vec.Length();
 	}
 
 	// 2つのベクトルの間の角度を計算する関数
 
+	/// <summary>
+	/// 2ベクトルのなす角を計算する。
+	/// </summary>
 	static float Angle(const Vector3& from, const Vector3& to) {
 		float l = from.Length() * to.Length();
 		if (l == 0) {
@@ -156,6 +180,9 @@ struct Vector3
 
 	// 2つのベクトルの間の角度を計算する関数
 
+	/// <summary>
+	/// 2ベクトルのなす角を計算する。
+	/// </summary>
 	static float Angle(const Vector3& from, const Vector3& to, const Vector3& up) {
 		Vector3 fromNormal = Normalize(from);
 		Vector3 toNormal = Normalize(to);
@@ -169,6 +196,9 @@ struct Vector3
 
 	// 2つのベクトルの間の角度を計算する関数
 
+	/// <summary>
+	/// 符号付きのなす角を計算する。
+	/// </summary>
 	static float SignedAngle(const Vector3& from, const Vector3& to, const Vector3& axis) {
 		float angle = Angle(from, to);
 		Vector3 cross = Cross(from, to);
@@ -180,6 +210,9 @@ struct Vector3
 
 	// 2つのベクトルの間の角度を計算する関数
 
+	/// <summary>
+	/// 符号付きのなす角を計算する。
+	/// </summary>
 	static float SignedAngle(const Vector3& from, const Vector3& to, const Vector3& axis, const Vector3& up) {
 		float angle = Angle(from, to, up);
 		Vector3 cross = Cross(from, to);
@@ -191,72 +224,108 @@ struct Vector3
 
 	// 2つのベクトルの間の距離を計算する関数
 
+	/// <summary>
+	/// 2点間の距離を計算する。
+	/// </summary>
 	static float Distance(const Vector3& a, const Vector3& b) {
 		return (a - b).Length();
 	}
 
 	// 2つのベクトルの間の距離の2乗を計算する関数
 
+	/// <summary>
+	/// 2点間の距離の2乗を計算する。
+	/// </summary>
 	static float DistanceSquared(const Vector3& a, const Vector3& b) {
 		return (a - b).LengthSquared();
 	}
 
 	// 2つのベクトルの最小値を計算する関数
 
+	/// <summary>
+	/// 成分ごとの最小値を返す。
+	/// </summary>
 	static Vector3 Min(const Vector3& a, const Vector3& b) {
 		return Vector3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
 	}
 
 	// 2つのベクトルの最大値を計算する関数
 
+	/// <summary>
+	/// 成分ごとの最大値を返す。
+	/// </summary>
 	static Vector3 Max(const Vector3& a, const Vector3& b) {
 		return Vector3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
 	}
 
 	// 2つのベクトルの線形補間を計算する関数
 
+	/// <summary>
+	/// 線形補間する。
+	/// </summary>
 	static Vector3 Lerp(const Vector3& a, const Vector3& b, float f) {
 		return a + (b - a) * f;
 	}
 
 	// ゼロベクトルを取得する関数
 
+	/// <summary>
+	/// ゼロベクトルを返す。
+	/// </summary>
 	static Vector3 Zero() {
 		return Vector3(0, 0, 0);
 	}
 
 	// X単位ベクトルを取得する関数
 
+	/// <summary>
+	/// X軸単位ベクトルを返す。
+	/// </summary>
 	static Vector3 UnitX() {
 		return Vector3(1, 0, 0);
 	}
 
 	// Y単位ベクトルを取得する関数
 
+	/// <summary>
+	/// Y軸単位ベクトルを返す。
+	/// </summary>
 	static Vector3 UnitY() {
 		return Vector3(0, 1, 0);
 	}
 
 	// Z単位ベクトルを取得する関数
 
+	/// <summary>
+	/// Z軸単位ベクトルを返す。
+	/// </summary>
 	static Vector3 UnitZ() {
 		return Vector3(0, 0, 1);
 	}
 
 	// ワールド座標の前方ベクトルを取得する関数
 
+	/// <summary>
+	/// 前方向ベクトルを返す。
+	/// </summary>
 	static Vector3 Forward() {
 		return UnitZ();
 	}
 
 	// ワールド座標の上方ベクトルを取得する関数
 
+	/// <summary>
+	/// 上方向ベクトルを返す。
+	/// </summary>
 	static Vector3 Up() {
 		return UnitY();
 	}
 
 	// ワールド座標の右方向ベクトルを取得する関数
 
+	/// <summary>
+	/// 右方向ベクトルを返す。
+	/// </summary>
 	static Vector3 Right() {
 		return UnitX();
 	}

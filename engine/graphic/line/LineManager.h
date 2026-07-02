@@ -18,12 +18,24 @@ class LineManager {
 	/// -----------------------------------------------------
 
 public:
+	/// <summary>
+	/// シングルトンインスタンスの取得。
+	/// </summary>
 	static LineManager* GetInstance();
 
 private:
 	static LineManager* instance_;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	LineManager() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~LineManager() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	LineManager(const LineManager&) = delete;
 	LineManager& operator=(const LineManager&) = delete;
 
@@ -94,6 +106,9 @@ public:
 	/// ゲッター・セッター
 	///----------------------------------------------------
 public:
+	/// <summary>
+	/// デフォルトカメラの取得・設定。
+	/// </summary>
 	TuboEngine::Camera* GetDefaultCamera() { return lineCommon_->GetDefaultCamera(); }
 	void SetDefaultCamera(TuboEngine::Camera* camera) { lineCommon_->SetDefaultCamera(camera); }
 

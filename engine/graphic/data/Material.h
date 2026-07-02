@@ -7,7 +7,9 @@ using TuboEngine::Math::Matrix4x4;
 using TuboEngine::Math::Vector4;
 
 namespace TuboEngine {
-// マテリアル
+/// <summary>
+/// マテリアル（色・ライティング設定・UV変換）のGPU転送用データ。
+/// </summary>
 struct Material {
 	//	色
 	Vector4 color;

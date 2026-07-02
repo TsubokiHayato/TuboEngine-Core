@@ -12,7 +12,9 @@ class Object3dCommon;
 class ModelCommon;
 class Camera;
 
-//平行光源
+/// <summary>
+/// 平行光源のGPU転送用データ。
+/// </summary>
 struct DirectionalLight {
 	//色
 	TuboEngine::Math::Vector4 color;
@@ -22,7 +24,9 @@ struct DirectionalLight {
 	float intensity;
 };
 
-//PointLight
+/// <summary>
+/// ポイントライトのGPU転送用データ。
+/// </summary>
 struct PointLight
 {
 	//色
@@ -33,6 +37,9 @@ struct PointLight
 	float intensity;
 };
 
+/// <summary>
+/// スポットライトのGPU転送用データ。
+/// </summary>
 struct SpotLight
 {
 	//色
@@ -53,6 +60,9 @@ struct SpotLight
 	float padding[2];
 };
 
+/// <summary>
+/// 使用するライティング方式（平行光源/Phong/Blinn-Phong/PointLight/SpotLight）を指定するGPU転送用データ。
+/// </summary>
 struct LightType {
 
 	//0 : 平行光源
@@ -69,6 +79,9 @@ namespace TuboEngine {
 // Object3d.cpp内で保持している共有ライト用GPUリソースを明示解放する（終了時リークチェック対策）
 void SharedLightResourcesRelease();
 
+/// <summary>
+/// 3Dオブジェクト。モデル・変換行列・ライティング設定を保持し、更新・描画を行う。
+/// </summary>
 class Object3d {
 public:
 	/// <summary>
@@ -118,6 +131,9 @@ public:
 	void SetSpotLightDecay(float decay) { spotLightData->decay = decay; }
 	void SetSpotLightCosAngle(float cosAngle) { spotLightData->cosAngle = cosAngle; }
 
+   /// <summary>
+   /// ライティング方式を設定する。
+   /// </summary>
    void SetLightType(int type) {
 		if (type < 0 || type > 5) {
 			type = 0;
@@ -125,14 +141,26 @@ public:
 		lightType_ = type;
 	}
 
+	/// <summary>
+	/// モデルを設定する。
+	/// </summary>
 	void SetModel(TuboEngine::Model* model) {
 		assert(model);
 		this->model_ = model;
 	}
+	/// <summary>
+	/// モデルを設定する。
+	/// </summary>
 	void SetModel(const std::string& filePath);
+	/// <summary>
+	/// カメラの取得・設定。
+	/// </summary>
 	void SetCamera(TuboEngine::Camera* camera) { this->camera = camera; }
 	TuboEngine::Camera* GetCamera() const { return camera; }
 
+	/// <summary>
+	/// モデルの色を設定する。
+	/// </summary>
 	void SetModelColor(const TuboEngine::Math::Vector4& color);
 
 	// Getter
@@ -146,11 +174,29 @@ public:
 	TuboEngine::Model* GetModel() const { return model_; }
 	TransformationMatrix* GetTransformationMatrixData() const { return transformMatrixData; }
 	
+	/// <summary>
+	/// DirectionalLightResource を取得する。
+	/// </summary>
 	ID3D12Resource* GetDirectionalLightResource() const { return directionalLightResource.Get(); }
+	/// <summary>
+	/// PointLightResource を取得する。
+	/// </summary>
 	ID3D12Resource* GetPointLightResource() const { return pointLightResource.Get(); }
+	/// <summary>
+	/// SpotLightResource を取得する。
+	/// </summary>
 	ID3D12Resource* GetSpotLightResource() const { return spotLightResource.Get(); }
+	/// <summary>
+	/// CameraForGPUResource を取得する。
+	/// </summary>
 	ID3D12Resource* GetCameraForGPUResource() const { return cameraForGPUResource.Get(); }
+	/// <summary>
+	/// LightTypeResource を取得する。
+	/// </summary>
 	ID3D12Resource* GetLightTypeResource() const { return lightTypeResource.Get(); }
+	/// <summary>
+	/// CubeMapFilePath を取得する。
+	/// </summary>
 	std::string GetCubeMapFilePath() const { return cubeMapFilePath_; }
 
 	//-------------------------------------------------------------------------------------------------
@@ -177,6 +223,9 @@ public:
 	float GetSpotLightDecay() { return spotLightData->decay; }
 	float GetSpotLightCosAngle() { return spotLightData->cosAngle; }
 
+	/// <summary>
+	/// CubeMapFilePath を設定する。
+	/// </summary>
 	void SetCubeMapFilePath(const std::string& filePath) { cubeMapFilePath_ = filePath; }
 
 private:

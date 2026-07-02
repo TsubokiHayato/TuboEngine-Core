@@ -13,6 +13,9 @@
 #include <iostream>
 #pragma comment(lib,"xaudio2.lib")
 
+/// <summary>
+/// 音声再生の共通基盤。XAudio2 の初期化とマスターボイスの管理を行う。
+/// </summary>
 class AudioCommon
 {
 private:
@@ -25,9 +28,14 @@ private:
 	AudioCommon& operator=(AudioCommon&&) = delete;//ムーブ代入演算子封印
 
 public://シングルトン
+	/// <summary>
+	/// シングルトンインスタンスの取得。
+	/// </summary>
 	static AudioCommon* GetInstance();
 private://非公開構造体
-	//チャンクヘッダ
+	/// <summary>
+	/// WAVファイルのチャンクヘッダ。
+	/// </summary>
 	struct ChunkHeader
 	{
 
@@ -35,21 +43,27 @@ private://非公開構造体
 		int32_t size;//チャンクサイズ
 	};
 
-	//RIFFヘッダチャンク
+	/// <summary>
+	/// WAVファイルのRIFFヘッダチャンク。
+	/// </summary>
 	struct RiffHeader
 	{
 		ChunkHeader chunk;//チャンクヘッダ
 		char type[4];//WAVE
 	};
 
-	//FMTチャンク
+	/// <summary>
+	/// WAVファイルのFMTチャンク。
+	/// </summary>
 	struct FormatChunk
 	{
 		ChunkHeader chunk;//チャンクヘッダ
 		WAVEFORMATEX fmt;//フォーマット
 	};
 public://公開構造体
-	//音声データ
+	/// <summary>
+	/// 読み込んだ音声データ一式。
+	/// </summary>
 	struct SoundData
 	{
 
@@ -61,7 +75,9 @@ public://公開構造体
 
 		std::string name;//ファイルパス
 	};
-	// 再生データ
+	/// <summary>
+	/// 再生中ボイスの管理データ。
+	/// </summary>
 	struct VoiceData {
 		
 		uint32_t handle = 0u;//アクセスハンドル

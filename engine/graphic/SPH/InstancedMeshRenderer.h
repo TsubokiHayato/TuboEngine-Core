@@ -25,8 +25,14 @@
 ///   r.Draw(gpuAddr, count);   ← Object3dCommonDraw() パス内で呼ぶ
 class InstancedMeshRenderer {
 public:
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize(const std::string& modelPath, int maxInstances,
                     TuboEngine::Camera* camera);
+    /// <summary>
+    /// 更新処理。
+    /// </summary>
     void Update(TuboEngine::Camera* camera);
 
     /// @param instanceDataGpuAddr  StructuredBuffer<InstanceData> の GPU アドレス
@@ -34,6 +40,9 @@ public:
     /// @param instanceCount        描画インスタンス数
     void Draw(D3D12_GPU_VIRTUAL_ADDRESS instanceDataGpuAddr, uint32_t instanceCount);
 
+    /// <summary>
+    /// 終了処理。
+    /// </summary>
     void Finalize();
 
     // ---- ライト設定 (Object3d に委譲) ----

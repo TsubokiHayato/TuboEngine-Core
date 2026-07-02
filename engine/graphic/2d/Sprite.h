@@ -10,6 +10,12 @@
 namespace TuboEngine {
 
 class SpriteCommon;
+
+/// <summary>
+/// 2Dスプライト（板ポリゴン）を描画するクラス。
+/// 位置・回転・サイズ・色・UV（切り出し範囲/フリップ）などの表示パラメータを保持し、
+/// 頂点・マテリアル・座標変換用の各GPUバッファを管理する。
+/// </summary>
 class Sprite
 {
 public:
@@ -37,49 +43,68 @@ public:
 	/// </summary>
 	void DrawImGui(const char* windowName);
 
-	//getter_Pos
-	    const TuboEngine::Math::Vector2&
-	    GetPosition() const {
-		return position;
-	}
-	//setter_Pos
-	    void SetPosition(const TuboEngine::Math::Vector2& position) { this->position = position; }
+	/// <summary>
+	/// 座標のgetter / setter。
+	/// </summary>
+	const TuboEngine::Math::Vector2& GetPosition() const { return position; }
+	void SetPosition(const TuboEngine::Math::Vector2& position) { this->position = position; }
 
 
-	//getter_Rotation
+	/// <summary>
+	/// 回転（Z軸、ラジアン）のgetter / setter。
+	/// </summary>
 	const float& GetRotation()const { return rotation; }
-	//setter_Rotation
 	void SetRotation(const float& rotation) { this->rotation = rotation; }
 
-	//getter_Color
+	/// <summary>
+	/// 表示色（RGBA）のgetter / setter。
+	/// </summary>
 	const TuboEngine::Math::Vector4& GetColor() const { return materialData->color; }
-	//setter_Color
 	void SetColor(const TuboEngine::Math::Vector4& color) { materialData->color = color; }
 
 
-	//getter_Size
+	/// <summary>
+	/// 表示サイズのgetter / setter。
+	/// </summary>
 	const TuboEngine::Math::Vector2& GetSize() const { return size; }
-	//setter_Size
 	void SetSize(const TuboEngine::Math::Vector2& size) { this->size = size; }
 
+	/// <summary>
+	/// アンカーポイント（基準点、0～1）のgetter / setter。
+	/// </summary>
 	const TuboEngine::Math::Vector2& GetAnchorPoint() const { return anchorPoint; }
 	void SetAnchorPoint(const TuboEngine::Math::Vector2& anchorPoint) { this->anchorPoint = anchorPoint; }
 
+	/// <summary>
+	/// 左右フリップ有無のgetter / setter。
+	/// </summary>
 	const bool& GetFlipX()const { return isFlipX_; }
 	void SetFlipX(const bool& isFlipX) { this->isFlipX_ = isFlipX; }
 
+	/// <summary>
+	/// 上下フリップ有無のgetter / setter。
+	/// </summary>
 	const bool& GetFlipY()const { return isFlipY_; }
 	void SetFlipY(const bool& isFlipY) { this->isFlipY_ = isFlipY; }
 
+	/// <summary>
+	/// テクスチャ切り出し範囲の左上座標のgetter / setter。
+	/// </summary>
 	const TuboEngine::Math::Vector2& GetTextureLeftTop() const { return textureLeftTop_; }
 	void SetTextureLeftTop(const TuboEngine::Math::Vector2& textureLeftTop) { this->textureLeftTop_ = textureLeftTop; }
 
+	/// <summary>
+	/// テクスチャ切り出しサイズのgetter / setter。
+	/// </summary>
 	const TuboEngine::Math::Vector2& GetTextureSize() const { return textureSize_; }
 	void SetTextureSize(const TuboEngine::Math::Vector2& textureSize) { this->textureSize_ = textureSize; }
 
+	/// <summary>
+	/// テクスチャサイズへ自動調整するかのgetter / setter。
+	/// </summary>
 	const bool& GetIsAdjustTextureSize()const { return isAdjustTextureSize; }
 	void SetGetIsAdjustTextureSize(const bool& isAdjustTextureSize) { this->isAdjustTextureSize = isAdjustTextureSize; }
-	
+
 	/// <summary>
 	/// テクスチャから初期サイズを得る
 	/// </summary>

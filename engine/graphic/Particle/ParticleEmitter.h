@@ -5,6 +5,9 @@
 #include <vector>
 namespace TuboEngine {
 
+/// <summary>
+/// パーティクルの発生源。発生位置・頻度を管理し、パーティクルの発生を指示する。
+/// </summary>
 class ParticleEmitter {
 public:
 	// コンストラクタ

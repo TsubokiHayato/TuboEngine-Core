@@ -3,18 +3,33 @@
 #include"PostEffectBase.h"
 #include"Camera.h"
 
+/// <summary>
+/// ポストエフェクトの登録・切り替え・適用を統括するクラス。
+/// </summary>
 class PostEffectManager
 {
 public:
+    /// <summary>
+    /// Effect を追加する。
+    /// </summary>
     void AddEffect(std::unique_ptr<PostEffectBase> effect);
 
+    /// <summary>
+    /// 全ポストエフェクトの初期化。
+    /// </summary>
     void InitializeAll();
 
+    /// <summary>
+    /// 全要素の一括更新。
+    /// </summary>
     void UpdateAll();
 
     // エフェクト切り替え
     void SetCurrentEffect(size_t index);
 
+    /// <summary>
+    /// Current の描画。
+    /// </summary>
     void DrawCurrent(ID3D12GraphicsCommandList* commandList);
 
     // 重ねがけ（チェーン）対応 ------------------------------------------------
@@ -44,11 +59,23 @@ public:
     }
     // ------------------------------------------------------------------------
 
+    /// <summary>
+    /// ImGuiによるデバッグ表示。
+    /// </summary>
     void DrawImGui();
 
+    /// <summary>
+    /// メインカメラを設定する。
+    /// </summary>
     void SetMainCamera(TuboEngine::Camera* camera);
 
+    /// <summary>
+    /// EffectCount を取得する。
+    /// </summary>
     size_t GetEffectCount() const { return effects_.size(); }
+    /// <summary>
+    /// CurrentIndex を取得する。
+    /// </summary>
     size_t GetCurrentIndex() const { return currentIndex_; }
 
 	template<typename T> T* GetEffect() {

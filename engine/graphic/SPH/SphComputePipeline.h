@@ -87,6 +87,9 @@ public:
                     const TuboEngine::Math::Vector3& boundMin,
                     const TuboEngine::Math::Vector3& boundMax,
                     float cellSize, int maxPerCell = 64);
+    /// <summary>
+    /// 終了処理。
+    /// </summary>
     void Finalize();
 
     /// 初期粒子データを GPU バッファにアップロード
@@ -111,13 +114,31 @@ public:
     }
 
 private:
+    /// <summary>
+    /// ルートシグネチャの生成。
+    /// </summary>
     void CreateRootSignature();
+    /// <summary>
+    /// ComputePSO の生成。
+    /// </summary>
     void CreateComputePSO(const wchar_t* shaderPath,
                            Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPso);
+    /// <summary>
+    /// DefaultBuffer の生成。
+    /// </summary>
     void CreateDefaultBuffer(UINT64 size,
                               Microsoft::WRL::ComPtr<ID3D12Resource>& outBuf);
+    /// <summary>
+    /// ParamsBuffer の生成。
+    /// </summary>
     void CreateParamsBuffer();
+    /// <summary>
+    /// UAVバリアを発行する。
+    /// </summary>
     void UAVBarrier(ID3D12GraphicsCommandList* cmd, ID3D12Resource* resource);
+    /// <summary>
+    /// リソース状態遷移バリアを発行する。
+    /// </summary>
     void TransitionBarrier(ID3D12GraphicsCommandList* cmd, ID3D12Resource* resource,
                             D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
 

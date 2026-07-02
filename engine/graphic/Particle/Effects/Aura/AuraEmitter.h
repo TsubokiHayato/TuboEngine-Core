@@ -1,7 +1,9 @@
 #pragma once
 #include "Effects/Primitive/PrimitiveEmitter.h"
 
-// プレイヤー周りの常時オーラ用エミッター
+/// <summary>
+/// プレイヤー足元の常時オーラ用パーティクルエミッター。
+/// </summary>
 class AuraEmitter : public PrimitiveEmitter {
 public:
     // 外部からデフォルトプリセットで作るときに用いる初期化

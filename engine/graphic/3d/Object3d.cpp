@@ -13,6 +13,9 @@
 #include "externals/imgui/imgui_impl_win32.h"
 
 namespace {
+/// <summary>
+/// 全 Object3d で共有するライト・カメラ用GPUリソース一式。
+/// </summary>
 struct SharedLightResources {
 	Microsoft::WRL::ComPtr<ID3D12Resource> directionalLightResource;
 	DirectionalLight* directionalLightData = nullptr;

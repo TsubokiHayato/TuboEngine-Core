@@ -1,5 +1,8 @@
 #pragma once
 #include "PostEffectPSOBase.h"
+/// <summary>
+/// ランダムノイズエフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class randomPSO : public PostEffectPSOBase
 {
 public:

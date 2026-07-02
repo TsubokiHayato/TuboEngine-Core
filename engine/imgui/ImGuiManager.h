@@ -10,6 +10,9 @@
 #include "externals/imgui/imgui_impl_dx12.h"
 #endif // USE_IMGUI
 namespace TuboEngine {
+/// <summary>
+/// ImGui の初期化・フレーム開始/終了・描画を管理するクラス。
+/// </summary>
 class ImGuiManager {
 public:
 	/// <summary>
@@ -25,8 +28,17 @@ public:
 private:
 	// コンストラクタ・デストラクタ・コピー禁止
 	static ImGuiManager* instance;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	ImGuiManager() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~ImGuiManager() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	ImGuiManager(const ImGuiManager&) = delete;
 	ImGuiManager& operator=(const ImGuiManager&) = delete;
 

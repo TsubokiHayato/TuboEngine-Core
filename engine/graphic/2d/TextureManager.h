@@ -8,16 +8,30 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// テクスチャの読み込み・SRV生成・キャッシュを管理するクラス（シングルトン）。
+/// </summary>
 class TextureManager
 {
 private:
 
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	TextureManager() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~TextureManager() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	TextureManager(TextureManager&) = delete;
 	TextureManager& operator=(TextureManager&) = delete;
 
-	//テクスチャ1枚分のデータ
+	/// <summary>
+	/// テクスチャ1枚分のリソースとSRV情報。
+	/// </summary>
 	struct TextureData
 	{
 		std::string filePath;//画像のファイルパス
@@ -46,6 +60,9 @@ public:
 	/// </summary>
 	void Initialize();
 
+	/// <summary>
+	/// テクスチャの読み込み。
+	/// </summary>
 	void LoadTexture(const std::string& filePath);
 
 
@@ -63,6 +80,9 @@ public:
 	/// <returns></returns>
 	uint32_t GetSrvIndex(const std::string& filePath);
 
+	/// <summary>
+	/// SrvHandleGPU を取得する。
+	/// </summary>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string& filePath);
 
 	//SRVインデックスの開始番号

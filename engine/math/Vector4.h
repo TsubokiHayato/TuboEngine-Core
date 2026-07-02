@@ -3,6 +3,9 @@
 
 namespace TuboEngine::Math {
 
+/// <summary>
+/// 4次元ベクトル。色（RGBA）や同次座標にも使用する。
+/// </summary>
 struct Vector4
 {
 	float x;

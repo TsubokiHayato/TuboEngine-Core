@@ -14,6 +14,9 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 namespace TuboEngine {
+/// <summary>
+/// 3Dモデル。頂点データ・マテリアル・テクスチャを保持し描画する。
+/// </summary>
 class Model {
 public:
 	//------------------------------------

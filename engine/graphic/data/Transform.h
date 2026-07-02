@@ -2,7 +2,9 @@
 #include "Vector3.h"
 
 namespace TuboEngine {
-// 座標
+/// <summary>
+/// 拡縮・回転・平行移動をまとめたトランスフォーム。
+/// </summary>
 struct Transform {
 	// 拡大率
 	TuboEngine::Math::Vector3 scale;

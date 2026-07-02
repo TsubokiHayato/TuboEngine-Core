@@ -1,5 +1,8 @@
 #pragma once
 #include "PostEffectPSOBase.h"
+/// <summary>
+/// ブルームエフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class BloomPSO : public PostEffectPSOBase {
 public:
 	// 初期化
@@ -8,5 +11,8 @@ public:
 	// グラフィックスパイプラインの作成
 	void CreateGraphicPipeline();
 
+	/// <summary>
+	/// ルートシグネチャの生成。
+	/// </summary>
 	void CreateRootSignature() override;
 };

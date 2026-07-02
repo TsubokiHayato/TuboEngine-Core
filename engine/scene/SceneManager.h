@@ -5,6 +5,9 @@
 #include<map>
 #include<string>
 #include"IScene.h"
+/// <summary>
+/// シーンの登録・切り替え・更新・描画を統括するクラス（シングルトン）。
+/// </summary>
 class SceneManager
 {
 public:
@@ -23,8 +26,17 @@ private:
  bool forceReload_ = false;
 	// コンストラクタ・デストラクタ・コピー禁止
 	static SceneManager* instance ;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	SceneManager() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~SceneManager() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	SceneManager(const SceneManager&) = delete;
 	SceneManager& operator=(const SceneManager&) = delete;
 

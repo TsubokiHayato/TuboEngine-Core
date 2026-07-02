@@ -13,17 +13,41 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// 画面に表示するテキスト1個分のオブジェクト。文字列・位置・色などを保持し描画する。
+/// </summary>
 class TextObject {
 public:
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     TextObject() = default;
+    /// <summary>
+    /// デストラクタ。
+    /// </summary>
     ~TextObject() = default;
 
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize();
 
     void SetText(const std::string& text);  // UTF-8 -> UTF-32 変換
+    /// <summary>
+    /// 座標を設定する。
+    /// </summary>
     void SetPosition(const Math::Vector2& pos);
+    /// <summary>
+    /// 色を設定する。
+    /// </summary>
     void SetColor(const Math::Vector4& color);
+    /// <summary>
+    /// スケールを設定する。
+    /// </summary>
     void SetScale(float scale);
+    /// <summary>
+    /// Font を設定する。
+    /// </summary>
     void SetFont(Font* font);
 
     // 揃え設定（0: Left/Top, 1: Center/Middle, 2: Right/Bottom）

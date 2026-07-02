@@ -16,6 +16,9 @@ class VignettePSO;
 
 // オフスクリーンレンダリングを管理するクラス
 // レンダーテクスチャへの描画やリソースバリアの制御などを担当します。
+/// <summary>
+/// オフスクリーンレンダリングの管理クラス。レンダーテクスチャへの描画やリソースバリアの制御を担う。
+/// </summary>
 class OffScreenRendering {
 public:
 	/// <summary>
@@ -31,8 +34,17 @@ public:
 private:
 	// コンストラクタ・デストラクタ・コピー禁止
 	static OffScreenRendering* instance;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	OffScreenRendering() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~OffScreenRendering() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	OffScreenRendering(const OffScreenRendering&) = delete;
 	OffScreenRendering& operator=(const OffScreenRendering&) = delete;
 
@@ -68,6 +80,9 @@ public:
 	/// </summary>
 	void TransitionRenderTextureToRenderTarget();
 
+	/// <summary>
+	/// 深度リソースを指定ステートへ遷移させる。
+	/// </summary>
 	void TransitionDepthTo(D3D12_RESOURCE_STATES newState);
 
 	// 任意リソースを現在状態(cur)から目標状態(next)へ遷移する（curは更新される）
@@ -80,8 +95,14 @@ public:
 	/// </summary>
 	void Draw();
 
+	/// <summary>
+	/// ImGuiによるデバッグ表示。
+	/// </summary>
 	void DrawImGui();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	/// <summary>
@@ -95,9 +116,15 @@ public:
 	/// <param name="clearColor">クリアカラー</param>
 	/// <returns>作成されたリソース</returns>
 	Microsoft::WRL::ComPtr<ID3D12Resource>
+	    /// <summary>
+	    /// RenderTargetResource の生成。
+	    /// </summary>
 	    CreateRenderTargetResource(Microsoft::WRL::ComPtr<ID3D12Device>& device, int32_t width, int32_t height, DXGI_FORMAT format, const TuboEngine::Math::Vector4& clearColor);
 
 public:
+	/// <summary>
+	/// カメラを設定する。
+	/// </summary>
 	void SetCamera(TuboEngine::Camera* camera) { this->camera_ = camera; }
 
 	// SSFR 用: オフスクリーン RTV ハンドルを公開

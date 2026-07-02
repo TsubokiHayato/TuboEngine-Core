@@ -2,6 +2,9 @@
 #include "IParticleEmitter.h"
 #include <algorithm>
 
+/// <summary>
+/// 平面（板ポリゴン）形状のパーティクルエミッター。
+/// </summary>
 class PrimitiveEmitter : public IParticleEmitter {
 public:
     // public にして外部から Initialize が呼べるようにする
@@ -44,6 +47,9 @@ public:
     }
 
 protected:
+	/// <summary>
+	/// 頂点形状を生成する。
+	/// </summary>
 	void BuildGeometry(std::vector<TuboEngine::VertexData>& out) override {
         // シンプルな板
         out.push_back({{ 1, 1,0,1},{0,0},{0,0,1}});
@@ -53,6 +59,9 @@ protected:
         out.push_back({{-1, 1,0,1},{1,0},{0,0,1}});
         out.push_back({{-1,-1,0,1},{1,1},{0,0,1}});
     }
+	/// <summary>
+	/// パーティクル1個分の初期状態を生成する。
+	/// </summary>
 	ParticleInfo GenerateParticle() override {
 		std::uniform_real_distribution<float> life(preset_.lifeMin, preset_.lifeMax);
 		// 初期スケールは preset_.scaleStart を使う（UpdateParticles で補間される）
