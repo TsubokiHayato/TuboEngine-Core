@@ -2,6 +2,9 @@
 #pragma once
 #include"DirectXCommon.h"
 #include"BlendMode.h"
+/// <summary>
+/// ブレンドなし描画用のPSO（パイプラインステートオブジェクト）を生成・保持するクラス。
+/// </summary>
 class NoneBlendPSO
 {
 public:

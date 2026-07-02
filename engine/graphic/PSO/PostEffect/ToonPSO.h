@@ -1,5 +1,8 @@
 #pragma once
 #include "PostEffectPSOBase.h"
+/// <summary>
+/// トゥーンエフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class ToonPSO : public PostEffectPSOBase {
 public:
 	// 初期化
