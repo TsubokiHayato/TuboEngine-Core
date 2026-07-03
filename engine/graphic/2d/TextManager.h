@@ -161,6 +161,11 @@ public:
     /// </summary>
     void RemoveText(TextObject* text);
 
+    // JSON レイアウトの識別名(name)で最初に一致するテキストを取得する。
+    // ロード済みレイアウトのテキストをシーン側から操作（色替え・移動など）したいときに使う。
+    // 見つからなければ nullptr。
+    TextObject* GetTextByName(const std::string& name) const;
+
     // 画面端アンカー指定でテキストを作成する便利関数。
     // margin は画面端からの余白(px)。anchor に応じて HorizontalAlign/VerticalAlign も自動設定する。
     TextObject* CreateTextAtAnchor(
