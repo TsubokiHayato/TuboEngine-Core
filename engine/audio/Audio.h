@@ -4,6 +4,9 @@
 #include <thread>
 
 namespace TuboEngine {
+/// <summary>
+/// 音声データの読み込みと再生・停止・音量操作を行うクラス。
+/// </summary>
 class Audio {
 public:
 	/// <summary>

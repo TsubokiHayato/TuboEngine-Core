@@ -15,6 +15,9 @@
 #include <random>
 #include <string>
 
+/// <summary>
+/// パーティクル1個分のCPU側状態（変換・速度・色・寿命）を保持する。
+/// </summary>
 struct ParticleInfo {
 	TuboEngine::Transform transform;
 	TuboEngine::Math::Vector3 velocity;
@@ -23,12 +26,20 @@ struct ParticleInfo {
 	float currentTime;
 };
 
+/// <summary>
+/// パーティクル1個分のGPU転送用データ（インスタンシング描画に使用）。
+/// </summary>
 struct ParticleForGPU {
 	TuboEngine::Math::Matrix4x4 WVP;
 	TuboEngine::Math::Matrix4x4 World;
 	TuboEngine::Math::Vector4 color;
 };
 
+/// <summary>
+/// パーティクルエミッターの発生・挙動パラメータをまとめたプリセット。
+/// 名前・テクスチャなどの基本設定から、発生範囲・速度・色変化・重力などの
+/// 挙動パラメータまでを保持し、各種エミッターの初期化に使用する。
+/// </summary>
 struct ParticlePreset {
 	// 基本
 	std::string name;
@@ -36,7 +47,7 @@ struct ParticlePreset {
 	uint32_t maxInstances = 128;
 	bool billboard = true;
 
-	TuboEngine::Math::Vector3 center{0,0,0};              // 追加: 発生中心
+	TuboEngine::Math::Vector3 center{0,0,0};              // 発生中心
 	TuboEngine::Math::Vector3 posMin{0,0,0}, posMax{0,0,0};
 	TuboEngine::Math::Vector3 velMin{0,0,0}, velMax{0,0,0};
 	TuboEngine::Math::Vector3 scaleMin{1,1,1}, scaleMax{1,1,1};
@@ -60,6 +71,11 @@ struct ParticlePreset {
 	TuboEngine::Transform emitterTransform{}; // エミッター自身の座標
 };
 
+/// <summary>
+/// パーティクルエミッターの基底クラス。
+/// ParticlePreset を元にパーティクルの生成・更新・描画・GPUバッファ管理を行い、
+/// 具体的な発生形状・挙動は派生クラスが GenerateParticle/BuildGeometry で実装する。
+/// </summary>
 class IParticleEmitter {
 public:
 	// デストラクタを明示的にし、マップ解除とリソース解放を安全に行う
@@ -73,13 +89,13 @@ public:
 	virtual const std::string& GetName() const { return preset_.name; }
 	virtual void DrawImGui(); // 直接呼ばれない（Manager側で統合表示）。残しつつ利用可能。
 
-	// 追加: 全粒子消去（Debug用途）
+	// 全粒子消去（Debug用途）
 	void ClearAll() {
 		particles_.clear();
 		instanceCount_ = 0;
 	}
 
-	// 追加: インスタンスバッファ再確保 (maxInstances 変更対応)
+	// インスタンスバッファ再確保 (maxInstances 変更対応)
 	void ReallocateInstanceBufferIfNeeded();
 
 protected:

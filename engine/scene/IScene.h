@@ -15,6 +15,9 @@
 //   IScene 側に番号を持たせる作りは廃止したので、各シーンの Initialize に
 //   「自分の番号を宣言するおまじない」は不要になった。
 
+/// <summary>
+/// 全シーン共通のインターフェース。シーン番号の管理と更新・描画の純粋仮想関数を定義する。
+/// </summary>
 class IScene
 {
 public:
@@ -32,8 +35,14 @@ public:
 	//ImGui描画
 	virtual void ImGuiDraw() = 0;
 
+	/// <summary>
+	/// パーティクル描画。
+	/// </summary>
 	virtual void ParticleDraw() = 0;
 
+	/// <summary>
+	/// メインカメラを取得する。
+	/// </summary>
 	virtual TuboEngine::Camera* GetMainCamera() const = 0;
 
 	//デストラクタ

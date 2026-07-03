@@ -5,7 +5,9 @@
 
 namespace TuboEngine {
 
-//! アプリケーションウィンドウ管理クラス（シングルトン）
+/// <summary>
+/// アプリケーションウィンドウ管理クラス（シングルトン）。
+/// </summary>
 class WinApp
 {
 public:

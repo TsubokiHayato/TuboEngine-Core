@@ -7,6 +7,9 @@
 #include <cstdint>
 
 namespace TuboEngine {
+/// <summary>
+/// スプライト描画の共通設定（PSO・ルートシグネチャ・共通描画設定）を管理するクラス。
+/// </summary>
 class SpriteCommon {
 public:
 	/// <summary>
@@ -22,8 +25,17 @@ public:
 private:
 	// コンストラクタ・デストラクタ・コピー禁止
 	static SpriteCommon* instance; // シングルトンインスタンス
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	SpriteCommon() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~SpriteCommon() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	SpriteCommon(const SpriteCommon&) = delete;
 	SpriteCommon& operator=(const SpriteCommon&) = delete;
 
@@ -37,6 +49,9 @@ public:
 	/// </summary>
 	void Initialize();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	/// <summary>

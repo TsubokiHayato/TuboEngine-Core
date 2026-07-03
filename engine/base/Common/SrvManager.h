@@ -1,6 +1,9 @@
 #pragma once
 #include "DirectXCommon.h"
 namespace TuboEngine {
+/// <summary>
+/// SRV（シェーダーリソースビュー）用デスクリプタヒープの割り当てと管理を行うクラス。
+/// </summary>
 class SrvManager {
 public:
 	/// <summary>
@@ -17,8 +20,17 @@ public:
 private:
 	// コンストラクタ・デストラクタ・コピー禁止
 	static SrvManager* instance;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	SrvManager() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~SrvManager() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	SrvManager(const SrvManager&) = delete;
 	SrvManager& operator=(const SrvManager&) = delete;
 
@@ -61,6 +73,9 @@ public:
 	/// </summary>
 	void PreDraw();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	//-------------------Getter & Setter-------------------//
@@ -70,6 +85,9 @@ public:
 	/// <param name="index">ディスクリプタヒープのインデックス</param>
 	D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(uint32_t index);
 
+	/// <summary>
+	/// DescriptorHeap を取得する。
+	/// </summary>
 	ID3D12DescriptorHeap* GetDescriptorHeap() const { return descriptorHeap.Get(); }
 	/// <summary>
 	/// ディスクリプタヒープのGPUハンドルを取得
@@ -77,6 +95,9 @@ public:
 	/// <param name="index">ディスクリプタヒープのインデックス</param>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(uint32_t index);
 
+	/// <summary>
+	/// GraphicsRootDescriptorTable を設定する。
+	/// </summary>
 	void SetGraphicsRootDescriptorTable(uint32_t rootParameterIndex, uint32_t srvIndex) {
 		TuboEngine::DirectXCommon::GetInstance()->GetCommandList()->SetGraphicsRootDescriptorTable(rootParameterIndex, GetGPUDescriptorHandle(srvIndex));
 	}

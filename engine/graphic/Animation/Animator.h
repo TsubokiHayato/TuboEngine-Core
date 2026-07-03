@@ -13,9 +13,14 @@ class ModelCommon;
 class Camera;
 
 namespace TuboEngine {
+/// <summary>
+/// アニメーション付き3Dモデルの再生と描画を行うクラス。
+/// </summary>
 class Animator {
 public:
-	// 平行光源
+	/// <summary>
+	/// 平行光源のGPU転送用データ。
+	/// </summary>
 	struct DirectionalLight {
 		// 色
 		TuboEngine::Math::Vector4 color;
@@ -25,7 +30,9 @@ public:
 		float intensity;
 	};
 
-	// PointLight
+	/// <summary>
+	/// ポイントライトのGPU転送用データ。
+	/// </summary>
 	struct PointLight {
 		// 色
 		TuboEngine::Math::Vector4 color;
@@ -35,6 +42,9 @@ public:
 		float intensity;
 	};
 
+	/// <summary>
+	/// スポットライトのGPU転送用データ。
+	/// </summary>
 	struct SpotLight {
 		// 色
 		TuboEngine::Math::Vector4 color;
@@ -54,6 +64,9 @@ public:
 		float padding[2];
 	};
 
+	/// <summary>
+	/// 使用するライティング方式（平行光源/Phong/Blinn-Phong/PointLight/SpotLight）を指定するGPU転送用データ。
+	/// </summary>
 	struct LightType {
 
 		// 0 : 平行光源
@@ -85,7 +98,13 @@ public:
 	/// </summary>
 	void DrawImGui(const char* windowName);
 
+	/// <summary>
+	/// アニメーションカーブから指定時刻の値を計算する。
+	/// </summary>
 	TuboEngine::Math::Vector3 CalculateValue(const std::vector<KeyFrameVector3>& keyFrames, float time);
+	/// <summary>
+	/// アニメーションカーブから指定時刻の値を計算する。
+	/// </summary>
 	TuboEngine::Math::Quaternion CalculateValue(const std::vector<KeyFrameQuaternion>& keyFrames, float time);
 
 public:
@@ -114,6 +133,9 @@ public:
 	void SetSpotLightDecay(float decay) { spotLightData->decay = decay; }
 	void SetSpotLightCosAngle(float cosAngle) { spotLightData->cosAngle = cosAngle; }
 
+	/// <summary>
+	/// ライティング方式を設定する。
+	/// </summary>
 	void SetLightType(int type) {
 		if (type < 0 || type > 5) {
 			type = 0;
@@ -121,12 +143,24 @@ public:
 		lightTypeData->type = type;
 	}
 
+	/// <summary>
+	/// モデルを設定する。
+	/// </summary>
 	void SetModel(TuboEngine::Model* model);
+	/// <summary>
+	/// モデルを設定する。
+	/// </summary>
 	void SetModel(const std::string& filePath);
 
+	/// <summary>
+	/// カメラの取得・設定。
+	/// </summary>
 	void SetCamera(TuboEngine::Camera* camera) { this->camera = camera; }
 	TuboEngine::Camera* GetCamera() const { return camera; }
 
+	/// <summary>
+	/// モデルの色を設定する。
+	/// </summary>
 	void SetModelColor(const TuboEngine::Math::Vector4& color);
 
 	// Getter
@@ -160,6 +194,9 @@ public:
 	float GetSpotLightDecay() { return spotLightData->decay; }
 	float GetSpotLightCosAngle() { return spotLightData->cosAngle; }
 
+	/// <summary>
+	/// CubeMapFilePath を設定する。
+	/// </summary>
 	void SetCubeMapFilePath(const std::string& filePath) { cubeMapFilePath_ = filePath; }
 
 private:

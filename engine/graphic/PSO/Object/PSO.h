@@ -1,6 +1,9 @@
 #pragma once
 #include"DirectXCommon.h"
 #include"BlendMode.h"
+/// <summary>
+/// 3Dオブジェクト描画用のPSO（パイプラインステートオブジェクト）を生成・保持するクラス。
+/// </summary>
 class PSO
 {
 public:

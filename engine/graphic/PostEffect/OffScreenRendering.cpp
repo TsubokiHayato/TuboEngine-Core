@@ -112,7 +112,7 @@ void OffScreenRendering::Initialize() {
 	// （OffScreenRendering::DrawImGui の配列と揃えておく）
 	dashEffectIndex_ = 8;
 
-	// VHS用: effectNames の並びに合わせて VHS の index は 14（最後に追加）
+	// VHS用: effectNames の並びに合わせて VHS の index は 14（末尾）
 	// （未設定だと SetVHSEffect が常に早期 return して効果が出ない）
 	vhsEffectIndex_ = 14;
 }

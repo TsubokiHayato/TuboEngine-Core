@@ -27,8 +27,14 @@ enum class NodeStatus {
 //-----------------------------------------------------------------------------
 // 基底クラス
 //-----------------------------------------------------------------------------
+/// <summary>
+/// ビヘイビアツリーの全ノード共通の基底クラス。
+/// </summary>
 class BehaviorNode {
 public:
+    /// <summary>
+    /// デストラクタ。
+    /// </summary>
     virtual ~BehaviorNode() = default;
     /// 毎フレーム呼ばれる実行メソッド
     virtual NodeStatus Tick() = 0;
@@ -41,12 +47,21 @@ public:
 // 子を左から順に Tick し、最初に Failure/Running が出たらそこで止まる。
 // 全子が Success を返したら Success。
 //-----------------------------------------------------------------------------
+/// <summary>
+/// Sequence（AND）ノード。子を左から順に実行し、Failure/Running が出たら停止する。
+/// </summary>
 class SequenceNode : public BehaviorNode {
 public:
+    /// <summary>
+    /// 子ノードを追加する。
+    /// </summary>
     void AddChild(std::unique_ptr<BehaviorNode> child) {
         children_.push_back(std::move(child));
     }
 
+    /// <summary>
+    /// ノードを実行し結果を返す。
+    /// </summary>
     NodeStatus Tick() override {
         for (auto& child : children_) {
             NodeStatus s = child->Tick();
@@ -55,6 +70,9 @@ public:
         return NodeStatus::Success;
     }
 
+    /// <summary>
+    /// 状態のリセット。
+    /// </summary>
     void Reset() override {
         for (auto& c : children_) c->Reset();
     }
@@ -68,12 +86,21 @@ private:
 // 子を左から順に Tick し、最初に Success/Running が出たらそこで止まる。
 // 全子が Failure を返したら Failure。
 //-----------------------------------------------------------------------------
+/// <summary>
+/// Selector（OR）ノード。子を左から順に実行し、Success/Running が出たら停止する。
+/// </summary>
 class SelectorNode : public BehaviorNode {
 public:
+    /// <summary>
+    /// 子ノードを追加する。
+    /// </summary>
     void AddChild(std::unique_ptr<BehaviorNode> child) {
         children_.push_back(std::move(child));
     }
 
+    /// <summary>
+    /// ノードを実行し結果を返す。
+    /// </summary>
     NodeStatus Tick() override {
         for (auto& child : children_) {
             NodeStatus s = child->Tick();
@@ -82,6 +109,9 @@ public:
         return NodeStatus::Failure;
     }
 
+    /// <summary>
+    /// 状態のリセット。
+    /// </summary>
     void Reset() override {
         for (auto& c : children_) c->Reset();
     }
@@ -94,11 +124,20 @@ private:
 // Inverter（デコレータ）
 // 子の Success ↔ Failure を反転する。Running はそのまま。
 //-----------------------------------------------------------------------------
+/// <summary>
+/// 子の Success/Failure を反転するデコレータノード。
+/// </summary>
 class InverterNode : public BehaviorNode {
 public:
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     explicit InverterNode(std::unique_ptr<BehaviorNode> child)
         : child_(std::move(child)) {}
 
+    /// <summary>
+    /// ノードを実行し結果を返す。
+    /// </summary>
     NodeStatus Tick() override {
         NodeStatus s = child_->Tick();
         if (s == NodeStatus::Success) return NodeStatus::Failure;
@@ -106,6 +145,9 @@ public:
         return NodeStatus::Running;
     }
 
+    /// <summary>
+    /// 状態のリセット。
+    /// </summary>
     void Reset() override { child_->Reset(); }
 
 private:
@@ -116,11 +158,20 @@ private:
 // ActionNode（リーフ）
 // NodeStatus を返すラムダを実行する。
 //-----------------------------------------------------------------------------
+/// <summary>
+/// NodeStatus を返すラムダを実行するリーフノード。
+/// </summary>
 class ActionNode : public BehaviorNode {
 public:
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     explicit ActionNode(std::function<NodeStatus()> action)
         : action_(std::move(action)) {}
 
+    /// <summary>
+    /// ノードを実行し結果を返す。
+    /// </summary>
     NodeStatus Tick() override { return action_(); }
 
 private:
@@ -131,11 +182,20 @@ private:
 // ConditionNode（リーフ）
 // bool を返すラムダで条件チェック。true → Success、false → Failure。
 //-----------------------------------------------------------------------------
+/// <summary>
+/// bool を返すラムダで条件判定するリーフノード。
+/// </summary>
 class ConditionNode : public BehaviorNode {
 public:
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     explicit ConditionNode(std::function<bool()> cond)
         : cond_(std::move(cond)) {}
 
+    /// <summary>
+    /// ノードを実行し結果を返す。
+    /// </summary>
     NodeStatus Tick() override {
         return cond_() ? NodeStatus::Success : NodeStatus::Failure;
     }
@@ -148,10 +208,12 @@ private:
 // ファクトリ関数（ツリー構築用ヘルパー）
 //=============================================================================
 
+/// Sequence（AND）ノード生成
 inline std::unique_ptr<SequenceNode> Sequence() {
     return std::make_unique<SequenceNode>();
 }
 
+/// Selector（OR）ノード生成
 inline std::unique_ptr<SelectorNode> Selector() {
     return std::make_unique<SelectorNode>();
 }
@@ -174,6 +236,7 @@ inline std::unique_ptr<ActionNode> Act(std::function<void()> fn) {
     });
 }
 
+/// 子の結果を反転するデコレータノード生成
 inline std::unique_ptr<InverterNode> Inverter(std::unique_ptr<BehaviorNode> child) {
     return std::make_unique<InverterNode>(std::move(child));
 }

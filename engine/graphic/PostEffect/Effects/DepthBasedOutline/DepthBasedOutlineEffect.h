@@ -5,7 +5,9 @@
 #include "Matrix.h"
 #include "PostEffectBase.h"
 
-// 定数バッファ構造体（projectionMatrix用）
+/// <summary>
+/// 深度ベース輪郭線用の定数バッファデータ（射影行列）。
+/// </summary>
 struct ToonDepthOutlineParams {
 	TuboEngine::Math::Matrix4x4 projectionInverse;
 	TuboEngine::Math::Vector4 outlineColor; // アウトラインの色
@@ -13,14 +15,32 @@ struct ToonDepthOutlineParams {
 	float outlineDepthThreshold; // アウトラインの深度しきい値
 };
 
+/// <summary>
+/// 深度値の差を利用して輪郭線を描くポストエフェクト。
+/// </summary>
 class DepthBasedOutlineEffect : public PostEffectBase {
 public:
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize() override;
+	/// <summary>
+	/// 描画処理。
+	/// </summary>
 	void Draw(ID3D12GraphicsCommandList* commandList) override;
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update() override;
+	/// <summary>
+	/// ImGuiによるデバッグ表示。
+	/// </summary>
 	void DrawImGui() override;
 
 public:
+	/// <summary>
+	/// メインカメラを設定する。
+	/// </summary>
 	void SetMainCamera(TuboEngine::Camera* camera) override;
 	// 定数バッファの取得
 	ID3D12Resource* GetMaterialCB() const { return materialCB_.Get(); }

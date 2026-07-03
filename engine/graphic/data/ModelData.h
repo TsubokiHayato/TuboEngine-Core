@@ -5,7 +5,9 @@
 #include"Node.h"
 
 namespace TuboEngine {
-// モデルデータ
+/// <summary>
+/// モデルデータ（頂点・マテリアル）。
+/// </summary>
 struct ModelData {
 	// 頂点データ
 	std::vector<VertexData> vertices;

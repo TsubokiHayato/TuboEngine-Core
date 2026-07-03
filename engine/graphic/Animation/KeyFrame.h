@@ -3,6 +3,9 @@
 #include"Quaternion.h"
 
 namespace TuboEngine {
+/// <summary>
+/// キーフレーム1個分のデータ（時刻と値）。
+/// </summary>
 template<typename tValue> struct KeyFrame {
 
 	float time = 0.0f; // キーフレームの時間

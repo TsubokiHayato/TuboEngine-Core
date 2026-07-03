@@ -25,6 +25,9 @@ class OffScreenRenderingPSO;
 // ゲームやアプリケーションのメインループや共通処理を管理します。
 
 namespace TuboEngine {
+/// <summary>
+/// アプリケーション全体の基盤クラス。ゲームループ（初期化・更新・描画・終了）の流れを定義する。
+/// </summary>
 class Framework {
 public:
 	/// <summary>

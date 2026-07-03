@@ -3,8 +3,14 @@
 #include <cmath>
 #include <numbers>
 
+/// <summary>
+/// 円柱形状のジオメトリを持つパーティクルエミッター。
+/// </summary>
 class CylinderEmitter : public IParticleEmitter {
 public:
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize(const ParticlePreset& preset) override {
 		// 本来の Cylinder は縦ストリークのテクスチャ(gradationLine)を円筒側面に貼って使う。
 		// テクスチャ未指定なら既定の縦ストリークを補う。
@@ -32,6 +38,9 @@ public:
 	float GetSpinSpeedY() const { return spinSpeedY_; }
 
 protected:
+	/// <summary>
+	/// 頂点形状を生成する。
+	/// </summary>
 	void BuildGeometry(std::vector<TuboEngine::VertexData>& out) override {
 		// 円柱側面のみ（レガシーの簡易版）
 		const uint32_t kDiv = 32;
@@ -69,6 +78,9 @@ protected:
 		}
 	}
 
+	/// <summary>
+	/// パーティクル1個分の初期状態を生成する。
+	/// </summary>
 	ParticleInfo GenerateParticle() override {
 		// 本来の Cylinder: spiral 等は足さず、preset の値で素直に置く静止円筒。
 		// （縦ストリークのテクスチャを円筒側面に貼って表現する）

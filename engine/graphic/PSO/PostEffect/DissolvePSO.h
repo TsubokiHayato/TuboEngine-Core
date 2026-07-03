@@ -1,6 +1,9 @@
 #pragma once
 #include "PostEffectPSOBase.h"
 
+/// <summary>
+/// ディゾルブエフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class DissolvePSO : public PostEffectPSOBase
 {
 public:

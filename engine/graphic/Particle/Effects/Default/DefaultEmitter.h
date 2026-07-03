@@ -1,9 +1,14 @@
 #pragma once
 #include "IParticleEmitter.h"
 
-// Minimal emitter without gravity/drag. Uses billboarded quad.
+/// <summary>
+/// 重力・減衰なしの最小構成エミッター。ビルボード四角形を使用する。
+/// </summary>
 class DefaultEmitter : public IParticleEmitter {
 public:
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize(const ParticlePreset& preset) override {
         // Start from given preset and enforce minimal physics
         ParticlePreset p = preset;
@@ -25,6 +30,9 @@ public:
         // Do NOT multiply scale; keep as-is to avoid over-large quads
     }
 
+    /// <summary>
+    /// 頂点形状を生成する。
+    /// </summary>
     void BuildGeometry(std::vector<TuboEngine::VertexData>& out) override {
         // Unit quad geometry (same scale behavior as PrimitiveEmitter)
         out.clear();
@@ -38,6 +46,9 @@ public:
         out.push_back(v2); out.push_back(v1); out.push_back(v3);
     }
 
+    /// <summary>
+    /// パーティクル1個分の初期状態を生成する。
+    /// </summary>
     ParticleInfo GenerateParticle() override {
         ParticleInfo info{};
         const auto& p = preset_;

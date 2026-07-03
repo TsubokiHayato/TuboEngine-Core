@@ -21,6 +21,9 @@
 ///   DrawShadePass(offscreenRTV, dsv)  ← offscreenRT を書き込み先に戻す
 class SphFluidRenderer {
 public:
+    /// <summary>
+    /// 流体レンダリングの調整パラメータ（ブラー半径・法線増幅率・水の色など）。
+    /// </summary>
     struct Params {
         float blurRadius   = 3.0f;   // ブラーカーネル半径 (1-5)
         float blurFalloff  = 1.0f;   // バイラテラル深度重み
@@ -31,28 +34,61 @@ public:
         TuboEngine::Math::Vector3 lightDir   = {0.5f,-1.0f, 0.5f};
     };
 
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize(int screenW, int screenH);
+    /// <summary>
+    /// 終了処理。
+    /// </summary>
     void Finalize();
 
+    /// <summary>
+    /// 深度パスの描画（粒子を深度テクスチャへ描画）。
+    /// </summary>
     void DrawDepthPass(int instSrvIdx, int particleCount,
                        const TuboEngine::Math::Matrix4x4& view,
                        const TuboEngine::Math::Matrix4x4& proj);
+    /// <summary>
+    /// ブラーパスの描画（深度をバイラテラルブラーで平滑化）。
+    /// </summary>
     void DrawBlurPass();
+    /// <summary>
+    /// シェーディングパスの描画（法線再構築とフレネル反射で合成）。
+    /// </summary>
     void DrawShadePass(D3D12_CPU_DESCRIPTOR_HANDLE targetRTV,
                        D3D12_CPU_DESCRIPTOR_HANDLE targetDSV,
                        const TuboEngine::Math::Matrix4x4& view);
 
+    /// <summary>
+    /// 調整パラメータを取得する。
+    /// </summary>
     Params& GetParams() { return params_; }
     bool    enabled    = true;
 
 private:
+    /// <summary>
+    /// レンダーターゲット群の生成。
+    /// </summary>
     void CreateRTs(int w, int h);
+    /// <summary>
+    /// 各パスのPSOの生成。
+    /// </summary>
     void CreatePSOs();
+    /// <summary>
+    /// ルートシグネチャの生成。
+    /// </summary>
     void CreateRootSig(bool withSampler, Microsoft::WRL::ComPtr<ID3D12RootSignature>& outRS);
+    /// <summary>
+    /// GraphicsPSO の生成。
+    /// </summary>
     void CreateGraphicsPSO(const wchar_t* vsPath, const wchar_t* psPath,
                            DXGI_FORMAT rtFmt, bool depthEnable, bool alphaBlend,
                            ID3D12RootSignature* rs,
                            Microsoft::WRL::ComPtr<ID3D12PipelineState>& outPSO);
+    /// <summary>
+    /// リソース状態遷移バリアを発行する。
+    /// </summary>
     void Barrier(ID3D12Resource* res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to);
 
     // ---- 深度 RT (R32_FLOAT) ----
@@ -83,17 +119,26 @@ private:
     Microsoft::WRL::ComPtr<ID3D12PipelineState>  shadePSO_;
 
     // ---- cbuffers (UPLOAD heap, persistently mapped) ----
+    /// <summary>
+    /// 深度パス用の定数バッファデータ。
+    /// </summary>
     struct alignas(16) DepthCB {
         TuboEngine::Math::Matrix4x4 view;
         TuboEngine::Math::Matrix4x4 proj;
         float resolution[2];
         float _pad[2];
     };
+    /// <summary>
+    /// ブラーパス用の定数バッファデータ。
+    /// </summary>
     struct alignas(16) BlurCB {
         float resolution[2];
         float blurRadius;
         float falloff;
     };
+    /// <summary>
+    /// シェーディングパス用の定数バッファデータ。
+    /// </summary>
     struct alignas(16) ShadeCB {
         float resolution[2];
         float normalScale;

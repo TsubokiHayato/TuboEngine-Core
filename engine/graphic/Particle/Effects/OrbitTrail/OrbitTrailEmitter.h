@@ -4,13 +4,22 @@
 
 // プレイヤー移動時のみ足跡トレイルを生成するエミッター。
 // ライフタイムに応じて preset.colorStart -> preset.colorEnd へ補間（IParticleEmitter 側で実施）。
+/// <summary>
+/// 軌道トレイル用エミッター。ライフタイムに応じて色を補間する。
+/// </summary>
 class OrbitTrailEmitter : public IParticleEmitter {
 public:
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     void Initialize(const ParticlePreset& preset) override {
         IParticleEmitter::Initialize(preset);
         prevCenter_ = preset_.center;
     }
 
+    /// <summary>
+    /// Center を設定する。
+    /// </summary>
     void SetCenter(const TuboEngine::Math::Vector3& center) { preset_.center = center; }
 
     // 移動していない場合は Emit を抑制
@@ -22,6 +31,9 @@ public:
     }
 
 protected:
+	/// <summary>
+	/// 頂点形状を生成する。
+	/// </summary>
 	void BuildGeometry(std::vector<TuboEngine::VertexData>& outVertices) override {
         outVertices.clear();
 		outVertices.push_back(
@@ -62,6 +74,9 @@ protected:
         });
     }
 
+    /// <summary>
+    /// パーティクル1個分の初期状態を生成する。
+    /// </summary>
     ParticleInfo GenerateParticle() override {
         ParticleInfo p{};
         p.transform.scale = preset_.scaleStart;
@@ -77,6 +92,9 @@ protected:
         return p;
     }
 
+    /// <summary>
+    /// 更新処理。
+    /// </summary>
     void Update(float dt, const TuboEngine::Camera* camera) override {
         IParticleEmitter::Update(dt, camera);
         prevCenter_ = preset_.center;

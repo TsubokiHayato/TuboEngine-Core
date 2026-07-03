@@ -3,9 +3,20 @@
 #include <fstream>
 #include <iostream>
 #include <set>
+#include <vector>
+#include <cctype>
+#include <Windows.h>
 #include <xaudio2.h>
 #include <wrl/client.h>
+// mp3 等のデコード用（Media Foundation）
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
+#include <mferror.h>
 #pragma comment(lib,"xaudio2.lib")
+#pragma comment(lib,"mfplat.lib")
+#pragma comment(lib,"mfreadwrite.lib")
+#pragma comment(lib,"mfuuid.lib")
 
 //サウンドデータコンテナの開始位置
 const uint32_t kStartSoundDataIndex = 1;
@@ -28,14 +39,155 @@ void AudioCommon::Initialize()
 	result = xAudio2_->CreateMasteringVoice(&masterVoice);
 	assert(SUCCEEDED(result));
 
+	//Media Foundation の起動（mp3 等のデコードに使用）
+	result = MFStartup(MF_VERSION);
+	assert(SUCCEEDED(result));
 }
 
 void AudioCommon::Finalize()
 {
 	//コンテナの全開放
 	ShutdownContainer();
+	//Media Foundation の終了
+	MFShutdown();
 	//XAudio2の解放
 	xAudio2_.Reset();
+}
+
+uint32_t AudioCommon::SoundLoad(const std::string& filename)
+{
+	// 拡張子を小文字化して判定（.wav は従来ローダ、それ以外は Media Foundation）
+	std::string ext;
+	const size_t dot = filename.find_last_of('.');
+	if (dot != std::string::npos) {
+		ext = filename.substr(dot + 1);
+		for (char& c : ext) {
+			c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		}
+	}
+
+	if (ext == "wav") {
+		return SoundLoadWave(filename);
+	}
+	return SoundLoadMedia(filename);
+}
+
+// Media Foundation で任意対応フォーマット（mp3 等）をデコードして PCM として登録する。
+uint32_t AudioCommon::SoundLoadMedia(const std::string& filename)
+{
+	// 1. 既存のサウンドデータを検索（名前一致で使い回す）
+	for (uint32_t i = kStartSoundDataIndex; i < soundDatas_.size(); ++i) {
+		if (soundDatas_[i].name == filename) {
+			return i;
+		}
+	}
+
+	// 2. UTF-8 パスを UTF-16 へ変換（Media Foundation は wide パス。日本語名も扱える）
+	const int wlen = MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, nullptr, 0);
+	if (wlen <= 0) {
+		std::cerr << "パス変換に失敗しました: " << filename << std::endl;
+		assert(false);
+		return static_cast<uint32_t>(-1);
+	}
+	std::wstring wpath(static_cast<size_t>(wlen), L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, wpath.data(), wlen);
+	if (!wpath.empty() && wpath.back() == L'\0') {
+		wpath.pop_back(); // 末尾の終端 NUL を除去
+	}
+
+	// 3. ソースリーダー生成
+	Microsoft::WRL::ComPtr<IMFSourceReader> reader;
+	HRESULT hr = MFCreateSourceReaderFromURL(wpath.c_str(), nullptr, reader.GetAddressOf());
+	if (FAILED(hr)) {
+		std::cerr << "音声ファイルを開けませんでした: " << filename << std::endl;
+		assert(false);
+		return static_cast<uint32_t>(-1);
+	}
+
+	const DWORD kAudioStream = static_cast<DWORD>(MF_SOURCE_READER_FIRST_AUDIO_STREAM);
+
+	// 4. 出力を PCM に設定
+	Microsoft::WRL::ComPtr<IMFMediaType> pcmType;
+	hr = MFCreateMediaType(pcmType.GetAddressOf());
+	if (SUCCEEDED(hr)) hr = pcmType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Audio);
+	if (SUCCEEDED(hr)) hr = pcmType->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_PCM);
+	if (SUCCEEDED(hr)) hr = reader->SetCurrentMediaType(kAudioStream, nullptr, pcmType.Get());
+	if (SUCCEEDED(hr)) hr = reader->SetStreamSelection(kAudioStream, TRUE);
+	if (FAILED(hr)) {
+		std::cerr << "PCM 出力の設定に失敗しました: " << filename << std::endl;
+		assert(false);
+		return static_cast<uint32_t>(-1);
+	}
+
+	// 5. 実際の出力フォーマット（WAVEFORMATEX）を取得
+	Microsoft::WRL::ComPtr<IMFMediaType> outType;
+	hr = reader->GetCurrentMediaType(kAudioStream, outType.GetAddressOf());
+	WAVEFORMATEX* pWfx = nullptr;
+	UINT32 wfxSize = 0;
+	if (SUCCEEDED(hr)) hr = MFCreateWaveFormatExFromMFMediaType(outType.Get(), &pWfx, &wfxSize);
+	if (FAILED(hr) || pWfx == nullptr) {
+		std::cerr << "フォーマット取得に失敗しました: " << filename << std::endl;
+		assert(false);
+		return static_cast<uint32_t>(-1);
+	}
+	WAVEFORMATEX wfex = *pWfx;
+	CoTaskMemFree(pWfx);
+
+	// 6. 全サンプルを読み出して PCM を連結
+	std::vector<BYTE> pcm;
+	for (;;) {
+		DWORD flags = 0;
+		Microsoft::WRL::ComPtr<IMFSample> sample;
+		hr = reader->ReadSample(kAudioStream, 0, nullptr, &flags, nullptr, sample.GetAddressOf());
+		if (FAILED(hr)) {
+			break;
+		}
+		if (flags & MF_SOURCE_READERF_ENDOFSTREAM) {
+			break;
+		}
+		if (!sample) {
+			continue;
+		}
+		Microsoft::WRL::ComPtr<IMFMediaBuffer> buffer;
+		if (FAILED(sample->ConvertToContiguousBuffer(buffer.GetAddressOf()))) {
+			break;
+		}
+		BYTE* audioData = nullptr;
+		DWORD curLen = 0;
+		if (FAILED(buffer->Lock(&audioData, nullptr, &curLen))) {
+			break;
+		}
+		pcm.insert(pcm.end(), audioData, audioData + curLen);
+		buffer->Unlock();
+	}
+
+	if (pcm.empty()) {
+		std::cerr << "デコード結果が空でした: " << filename << std::endl;
+		assert(false);
+		return static_cast<uint32_t>(-1);
+	}
+
+	// 7. サウンドデータの登録（バッファは delete[] で解放されるので new[] で確保）
+	BYTE* pBuffer = new BYTE[pcm.size()];
+	memcpy(pBuffer, pcm.data(), pcm.size());
+
+	SoundData soundData = {};
+	soundData.wfex = wfex;
+	soundData.pBuffer = pBuffer;
+	soundData.bufferSize = static_cast<unsigned int>(pcm.size());
+	soundData.name = filename;
+
+	for (uint32_t i = kStartSoundDataIndex; i < soundDatas_.size(); ++i) {
+		if (soundDatas_[i].pBuffer == nullptr) {
+			soundDatas_[i] = soundData;
+			return i;
+		}
+	}
+
+	delete[] pBuffer;
+	std::cerr << "No available space in soundDatas_" << std::endl;
+	assert(false);
+	return static_cast<uint32_t>(-1);
 }
 
 uint32_t AudioCommon::SoundLoadWave(const std::string& filename)
@@ -341,6 +493,9 @@ void AudioCommon::ClearVoiceData() {
 }
 
 void AudioCommon::ShutdownContainer() {
-	ClearSoundData(); // SoundDataの解放
-	ClearVoiceData(); // VoiceDataの解放
+	// 順序が重要: 先にボイスを停止・破棄してから音声バッファを解放する。
+	// 逆にすると、ループ再生中などで生きているボイスを XAudio2 の再生スレッドが
+	// 解放済みバッファを読みに行き、終了時にアクセス違反(0xC0000005)を起こす。
+	ClearVoiceData(); // VoiceDataの解放（ソースボイスを停止・破棄）
+	ClearSoundData(); // SoundDataの解放（バッファを delete[]）
 }

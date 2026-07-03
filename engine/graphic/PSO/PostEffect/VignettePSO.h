@@ -1,6 +1,9 @@
 #pragma once
 #include "PostEffectPSOBase.h"
 
+/// <summary>
+/// ビネットエフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class VignettePSO : public PostEffectPSOBase
 {
 public:

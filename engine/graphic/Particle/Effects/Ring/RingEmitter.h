@@ -2,8 +2,14 @@
 #include "IParticleEmitter.h"
 #include <numbers>
 
+/// <summary>
+/// リング形状のジオメトリを持つパーティクルエミッター。
+/// </summary>
 class RingEmitter : public IParticleEmitter {
 protected:
+	/// <summary>
+	/// 頂点形状を生成する。
+	/// </summary>
 	void BuildGeometry(std::vector<TuboEngine::VertexData>& out) override {
         const uint32_t div = 64;
         const float outerR = 1.0f;
@@ -50,6 +56,9 @@ public:
     }
 
 protected:
+    /// <summary>
+    /// パーティクル1個分の初期状態を生成する。
+    /// </summary>
     ParticleInfo GenerateParticle() override {
         std::uniform_real_distribution<float> life(preset_.lifeMin, preset_.lifeMax);
         std::uniform_real_distribution<float> sx(preset_.scaleMin.x, preset_.scaleMax.x);

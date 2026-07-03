@@ -3,6 +3,9 @@
 
 namespace TuboEngine::Math {
 
+/// <summary>
+/// 4x4行列。3D変換（平行移動・回転・スケール・射影）に使用する。
+/// </summary>
 struct Matrix4x4 {
     float m[4][4];
 

@@ -11,10 +11,16 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// キーボード・マウス・ゲームパッドの入力を一括管理するクラス（シングルトン）。
+/// </summary>
 class Input {
 public:
 	using Vector2 = Math::Vector2;
 
+	/// <summary>
+	/// マウスの移動量（X・Y・ホイール）。
+	/// </summary>
 	struct MouseMove {
 		LONG lX;
 		LONG lY;
@@ -32,6 +38,9 @@ public:
 		State() { ZeroMemory(this, sizeof(State)); }
 	};
 
+	/// <summary>
+	/// ゲームパッド1台分のデバイスと入力状態。
+	/// </summary>
 	struct Joystick {
 		Microsoft::WRL::ComPtr<IDirectInputDevice8> device_;
 		int32_t deadZoneL_ = 0;
@@ -44,11 +53,26 @@ public:
 	};
 
 public:
+	/// <summary>
+	/// シングルトンインスタンスの取得。
+	/// </summary>
 	static Input* GetInstance();
 
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize(HWND hwnd);
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update();
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
+	/// <summary>
+	/// InputDebugWindow を表示する。
+	/// </summary>
 	void ShowInputDebugWindow();
 
 	// キーボード
@@ -78,12 +102,27 @@ public:
 
 private:
 	static Input* instance;
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	Input() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~Input() = default;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	Input(const Input&) = delete;
 	Input& operator=(const Input&) = delete;
 
+	/// <summary>
+	/// 接続されているゲームパッドを列挙・初期化する。
+	/// </summary>
 	void SetupJoysticks();
+	/// <summary>
+	/// ゲームパッド列挙時のコールバック。
+	/// </summary>
 	static BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE* pdidInstance, VOID* pContext) noexcept;
 
 private:

@@ -4,6 +4,9 @@
 
 namespace TuboEngine::Math {
 
+/// <summary>
+/// クォータニオン。3D回転の表現・補間に使用する。
+/// </summary>
 class Quaternion {
 public:
     float x, y, z, w;
@@ -14,6 +17,9 @@ public:
     // パラメータ付きコンストラクタ
     Quaternion(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 
+     /// <summary>
+     /// オイラー角へ変換する。
+     /// </summary>
      Vector3 ToEuler() const {
 		Vector3 euler;
 

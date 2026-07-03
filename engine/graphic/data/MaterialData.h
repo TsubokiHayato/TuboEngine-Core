@@ -3,7 +3,9 @@
 #include <string>
 
 namespace TuboEngine {
-// マテリアルデータ
+/// <summary>
+/// マテリアルデータ（テクスチャファイルパス等）。
+/// </summary>
 struct MaterialData {
 	// テクスチャファイルパス
 	std::string textureFilePath;

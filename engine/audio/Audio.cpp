@@ -15,8 +15,8 @@ void Audio::Initialize(const std::string& filename) {
 	// ディレクトリパスのコピー
 	directoryPath_ = audioDirectoryPath;
 
-	// WAVファイルを読み込み
-	soundDataHandle_ = AudioCommon::GetInstance()->SoundLoadWave(directoryPath_ + filename);
+	// 音声ファイルを読み込み（拡張子で WAV / mp3等 を自動振り分け）
+	soundDataHandle_ = AudioCommon::GetInstance()->SoundLoad(directoryPath_ + filename);
 }
 
 void Audio::Play(bool loop, float valume) {

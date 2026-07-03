@@ -17,6 +17,9 @@
 #include<OffScreenRenderingPSO.h>
 
 namespace TuboEngine {
+/// <summary>
+/// DirectX 12 の共通基盤。デバイス・コマンドリスト・スワップチェーン・レンダーターゲットなどの生成と管理を行う。
+/// </summary>
 class DirectXCommon {
 
 private:
@@ -25,6 +28,9 @@ private:
 	~DirectXCommon() = default;
 	DirectXCommon(const DirectXCommon&) = delete;
 	DirectXCommon& operator=(const DirectXCommon&) = delete;
+	/// <summary>
+	/// コピー禁止。
+	/// </summary>
 	DirectXCommon(DirectXCommon&&) = delete;
 	DirectXCommon& operator=(DirectXCommon&&) = delete;
 
@@ -40,6 +46,9 @@ public:
 	// 初期化
 	void Initialize();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	// デバイスの初期化
@@ -87,6 +96,9 @@ public:
 	// Device
 	Microsoft::WRL::ComPtr<IDXGIFactory7> GetDxgiFactory() const { return dxgiFactory; }
 
+	/// <summary>
+	/// Device を取得する。
+	/// </summary>
 	Microsoft::WRL::ComPtr<ID3D12Device> GetDevice() const { return device; }
 
 	// Command
@@ -137,11 +149,23 @@ public:
 	// DSVディスクイリプタヒープの生成
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> GetDsvDescriptorHeap() { return dsvDescriptorHeap; }
 
+	/// <summary>
+	/// RtvDesc を取得する。
+	/// </summary>
 	D3D12_RENDER_TARGET_VIEW_DESC GetRtvDesc() { return rtvDesc; }
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[3] = {};
 
+	/// <summary>
+	/// Fence を取得する。
+	/// </summary>
 	Microsoft::WRL::ComPtr<ID3D12Fence> GetFence() { return fence; }
+	/// <summary>
+	/// FenceValue を取得する。
+	/// </summary>
 	uint64_t GetFenceValue() { return fenceValue; }
+	/// <summary>
+	/// FenceEvent を取得する。
+	/// </summary>
 	HANDLE GetFenceEvent() { return fenceEvent; }
 
 	// ビューポート
@@ -154,6 +178,9 @@ public:
 	IDxcCompiler3* GetDxcCompiler() { return dxcCompiler; }
 	IDxcIncludeHandler* GetIncludeHandler() { return includeHandler; }
 
+	/// <summary>
+	/// BackBufferCount を取得する。
+	/// </summary>
 	size_t GetBackBufferCount() const { return swapChainDesc.BufferCount; }
 
 	// viewportの取得

@@ -6,6 +6,9 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// スカイボックス描画の共通設定（PSO・ルートシグネチャ）を管理するクラス。
+/// </summary>
 class SkyBoxCommon
 {
 
@@ -35,6 +38,9 @@ public:
 	/// </summary>
 	void Initialize();
 
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize();
 
 	/// <summary>

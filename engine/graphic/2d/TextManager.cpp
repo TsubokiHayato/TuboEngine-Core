@@ -996,6 +996,17 @@ void TextManager::RemoveText(TextObject* text) {
     }
 }
 
+// JSON レイアウトの識別名(name)で最初に一致するテキストを返す。
+// textDefs_ と texts_ は JSON ロード時に並びが対応しているため、名前一致の添字で引ける。
+TextObject* TextManager::GetTextByName(const std::string& name) const {
+    if (name.empty()) return nullptr;
+    for (size_t i = 0; i < textDefs_.size() && i < texts_.size(); ++i) {
+        if (i < textAlive_.size() && !textAlive_[i]) continue; // 削除予約済みは除外
+        if (textDefs_[i].name == name) return texts_[i].get();
+    }
+    return nullptr;
+}
+
 // すべてのテキスト（及びレイアウト定義）を削除
 // シーン終了時などに残らないようにするため呼び出します。
 void TextManager::ClearAllTexts() {

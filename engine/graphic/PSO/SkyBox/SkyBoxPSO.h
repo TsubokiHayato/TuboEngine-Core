@@ -1,5 +1,8 @@
 #pragma once
 #include"DirectXCommon.h"
+/// <summary>
+/// スカイボックス描画用のPSOを生成・保持するクラス。
+/// </summary>
 class SkyBoxPSO
 {
 public:

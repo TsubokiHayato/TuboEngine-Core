@@ -2,7 +2,9 @@
 #include "Matrix4x4.h"
 
 namespace TuboEngine {
-// 変換行列
+/// <summary>
+/// 変換行列（WVP・ワールド行列）のGPU転送用データ。
+/// </summary>
 struct TransformationMatrix {
 	// ワールドビュープロジェクション行列
 	TuboEngine::Math::Matrix4x4 WVP;

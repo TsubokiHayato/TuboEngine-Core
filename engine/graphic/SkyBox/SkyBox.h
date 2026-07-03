@@ -10,22 +10,52 @@
 #include"Material.h"
 
 namespace TuboEngine {
+/// <summary>
+/// キューブマップテクスチャで背景（空）を描画するスカイボックス。
+/// </summary>
 class SkyBox {
 public:
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize(const std::string& textureFilePath);
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update();
+	/// <summary>
+	/// 描画処理。
+	/// </summary>
 	void Draw();
 
 public:
+	/// <summary>
+	/// カメラを設定する。
+	/// </summary>
 	void SetCamera(TuboEngine::Camera* camera) { camera_ = camera; }
 
+	/// <summary>
+	/// トランスフォームの取得・設定。
+	/// </summary>
 	void SetTransform(const Transform& transform) { this->transform = transform; }
 	const Transform& GetTransform() const { return transform; }
 
+	/// <summary>
+	/// 座標を設定する。
+	/// </summary>
 	void SetPosition(const TuboEngine::Math::Vector3& position) { transform.translate = position; }
+	/// <summary>
+	/// 回転を設定する。
+	/// </summary>
 	void SetRotation(const TuboEngine::Math::Vector3& rotation) { transform.rotate = rotation; }
+	/// <summary>
+	/// スケールを設定する。
+	/// </summary>
 	void SetScale(const TuboEngine::Math::Vector3& scale) { transform.scale = scale; }
 
+	/// <summary>
+	/// TextureFilePath の取得・設定。
+	/// </summary>
 	void SetTextureFilePath(const std::string& textureFilePath) { textureFilePath_ = textureFilePath; }
 	const std::string& GetTextureFilePath() const { return textureFilePath_; }
 

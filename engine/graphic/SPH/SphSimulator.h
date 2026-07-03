@@ -38,6 +38,9 @@ struct SdfObstacle {
     float   mass     = 1.0f;
     TuboEngine::Math::Vector3 velocity = {};
 
+    /// <summary>
+    /// コンテナ（容器）形状かどうかを取得する。
+    /// </summary>
     bool IsContainer() const {
         return type == Type::SphereContainer
             || type == Type::BoxContainer
@@ -53,6 +56,9 @@ struct SdfObstacle {
 ///         ParticlePSO パス (ParticleDraw) 内で Draw() を呼ぶこと
 class SphSimulator {
 public:
+    /// <summary>
+    /// SPHシミュレーションの調整パラメータ（粒子数・影響半径・粘性係数など）。
+    /// </summary>
     struct Params {
         int   particleCount   = 10000;          // 粒子数
         float smoothingRadius = 1.0f;           // 影響半径 h
@@ -86,6 +92,9 @@ public:
                     TuboEngine::Camera* camera = nullptr,
                     const std::string& modelPath = "Resources/Model/Sphere/Sphere.obj",
                     const std::string& texture   = "particle.png");
+    /// <summary>
+    /// 更新処理。
+    /// </summary>
     void Update(float dt, TuboEngine::Camera* camera);
     void Draw();       // Object3DDraw() パス内で呼ぶ (InstancedMeshRenderer 使用)
 
@@ -95,19 +104,40 @@ public:
     void DrawFluid(D3D12_CPU_DESCRIPTOR_HANDLE targetRTV,
                    D3D12_CPU_DESCRIPTOR_HANDLE targetDSV);
 
+    /// <summary>
+    /// 移動範囲の描画。
+    /// </summary>
     void DrawBounds(const TuboEngine::Math::Vector4& color = {0.3f, 0.8f, 1.0f, 1.0f});
+    /// <summary>
+    /// ImGuiによるデバッグ表示。
+    /// </summary>
     void DrawImGui();
+    /// <summary>
+    /// 状態のリセット。
+    /// </summary>
     void Reset();
+    /// <summary>
+    /// 終了処理。
+    /// </summary>
     void Finalize();
 
     // ---- SDF 障害物 ----
     void AddSphere(const TuboEngine::Math::Vector3& center, float radius,
                    const std::string& label = "");
+    /// <summary>
+    /// Box を追加する。
+    /// </summary>
     void AddBox(const TuboEngine::Math::Vector3& center,
                 const TuboEngine::Math::Vector3& halfExtents,
                 const std::string& label = "");
+    /// <summary>
+    /// DynamicSphere を追加する。
+    /// </summary>
     void AddDynamicSphere(const TuboEngine::Math::Vector3& center, float radius,
                           float mass, const std::string& label = "");
+    /// <summary>
+    /// DynamicBox を追加する。
+    /// </summary>
     void AddDynamicBox(const TuboEngine::Math::Vector3& center,
                        const TuboEngine::Math::Vector3& halfExtents,
                        float mass, const std::string& label = "");
@@ -125,8 +155,14 @@ public:
                               float radius, float halfHeight,
                               const std::string& label = "");
 
+    /// <summary>
+    /// 障害物をすべて消去する。
+    /// </summary>
     void ClearObstacles();
 
+    /// <summary>
+    /// 調整パラメータを取得する。
+    /// </summary>
     Params& GetParams() { return params_; }
 
     // SSFR レンダラーへのアクセス (パラメータ調整用)
@@ -134,6 +170,9 @@ public:
 
     // プリセット (水/ハチミツ/スライム をワンクリック適用)
     enum class Preset { Water, Honey, Slime };
+    /// <summary>
+    /// プリセットを適用する。
+    /// </summary>
     void ApplyPreset(Preset preset);
 
 private:
@@ -169,6 +208,9 @@ private:
     bool  mouseDriving_      = false;
 
     // ---- ImGui 追加フォーム用 UI 状態 ----
+    /// <summary>
+    /// ImGuiの追加フォーム用UI状態。
+    /// </summary>
     struct ImGuiState {
         float sphCenter[3]    = {0.f, 5.f, 0.f};
         float sphRadius       = 2.0f;

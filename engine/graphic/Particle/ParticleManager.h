@@ -8,17 +8,35 @@
 class Camera;
 
 namespace TuboEngine {
+/// <summary>
+/// 全パーティクルエミッターの登録・更新・描画を統括するクラス。
+/// </summary>
 class ParticleManager {
 public:
+	/// <summary>
+	/// シングルトンインスタンスの取得。
+	/// </summary>
 	static ParticleManager* GetInstance() {
 		static ParticleManager inst;
 		return &inst;
 	}
 
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~ParticleManager() { Finalize(); }
 
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update(float dt, TuboEngine::Camera* defaultCam);
+	/// <summary>
+	/// 描画処理。
+	/// </summary>
 	void Draw();
+	/// <summary>
+	/// ImGuiによるデバッグ表示。
+	/// </summary>
 	void DrawImGui();
 
 	// Registry-based creation
@@ -36,17 +54,47 @@ public:
 		return raw;
 	}
 
+	/// <summary>
+	/// 名前からエミッターを検索する。
+	/// </summary>
 	IParticleEmitter* Find(const std::string& name);
+	/// <summary>
+	/// 指定エミッターを削除する。
+	/// </summary>
 	void Remove(const std::string& name);
 
+	/// <summary>
+	/// 全プリセットを保存する。
+	/// </summary>
 	void SaveAll(const std::string& filePath);
+	/// <summary>
+	/// 全プリセットをファイルから読み込む。
+	/// </summary>
 	void LoadAll(const std::string& filePath);
+	/// <summary>
+	/// 選択中のプリセットを保存する。
+	/// </summary>
 	void SaveSelected(const std::string& filePath, const std::vector<std::string>& names);
+	/// <summary>
+	/// ファイルから読み込んで既存プリセットへマージする。
+	/// </summary>
 	void LoadMerge(const std::string& filePath);
 
+	/// <summary>
+	/// 直前の変更を取り消す。
+	/// </summary>
 	void Undo();
+	/// <summary>
+	/// 取り消した変更をやり直す。
+	/// </summary>
 	void Redo();
+	/// <summary>
+	/// 起動時のプリセット読み込み。
+	/// </summary>
 	void InitialLoad(const std::string& filePath);
+	/// <summary>
+	/// 終了処理。
+	/// </summary>
 	void Finalize() {
 		emitters_.clear();
 		previewEmitter_.reset();
@@ -55,21 +103,57 @@ public:
 	}
 
 private:
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	ParticleManager();
+	/// <summary>
+	/// 重複しない名前を生成する。
+	/// </summary>
 	std::string GenerateUniqueName(const std::string& base) const;
+	/// <summary>
+	/// Undo用に現在の状態を履歴へ記録する。
+	/// </summary>
 	void CaptureHistory();
+	/// <summary>
+	/// スナップショット（JSON）を適用して状態を復元する。
+	/// </summary>
 	void ApplySnapshot(const std::string& jsonStr);
+	/// <summary>
+	/// 現在の状態からスナップショットJSONを構築する。
+	/// </summary>
 	std::string BuildSnapshotJson() const;
+	/// <summary>
+	/// Status を設定する。
+	/// </summary>
 	void SetStatus(const char* fmt, ...);
+	/// <summary>
+	/// 変更ありフラグを立てる。
+	/// </summary>
 	void MarkChanged();
+	/// <summary>
+	/// ステータスバーのImGui描画。
+	/// </summary>
 	void DrawStatusBar();
+	/// <summary>
+	/// テンプレート一覧セクションのImGui描画。
+	/// </summary>
 	void DrawTemplatesSection();
+	/// <summary>
+	/// エミッター一覧セクションのImGui描画。
+	/// </summary>
 	void DrawEmittersSection();
 	enum class PendingActionType { None, DeleteEmitter, ClearEmitter, LoadAll, LoadMergeSelected, UndoAction, RedoAction };
 	PendingActionType pendingAction_ = PendingActionType::None;
 	std::string pendingEmitterName_;
 	std::string confirmMessage_;
+	/// <summary>
+	/// 確認ポップアップを開く。
+	/// </summary>
 	void OpenConfirmPopup(const char* popupName, const char* message);
+	/// <summary>
+	/// 保留中の操作を実行する。
+	/// </summary>
 	void ExecutePendingAction();
 
 	// Preview helpers
@@ -80,7 +164,13 @@ private:
 	// Registry
 	using EmitterFactoryFunc = std::function<std::unique_ptr<IParticleEmitter>()>;
 	std::unordered_map<std::string, EmitterFactoryFunc> emitterRegistry_;
+	/// <summary>
+	/// デフォルトのエミッター群を登録する。
+	/// </summary>
 	void RegisterDefaultEmitters();
+	/// <summary>
+	/// プリセットからエミッター種別を判定する。
+	/// </summary>
 	std::string DetectEmitterType(IParticleEmitter* e) const;
 
 private:

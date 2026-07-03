@@ -3,6 +3,9 @@
 #include "PostEffectBase.h"
 #include"DirectXCommon.h"
 
+/// <summary>
+/// ブルームエフェクトの調整パラメータ。
+/// </summary>
 struct BloomParams {
 
 	 float threshold; // 明るさの閾値
@@ -11,9 +14,18 @@ struct BloomParams {
 
 };
 
+/// <summary>
+/// 高輝度部分を抽出して光らせるブルームポストエフェクト。
+/// </summary>
 class BloomEffect : public PostEffectBase {
 public:
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	BloomEffect() = default;
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~BloomEffect() override = default;
 	// 初期化
 	void Initialize() override;

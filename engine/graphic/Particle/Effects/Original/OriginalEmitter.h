@@ -3,8 +3,14 @@
 #include <numbers>
 #include <cmath>
 
+/// <summary>
+/// 独自形状のジオメトリを持つパーティクルエミッター。
+/// </summary>
 class OriginalEmitter : public IParticleEmitter {
 protected:
+	/// <summary>
+	/// 頂点形状を生成する。
+	/// </summary>
 	void BuildGeometry(std::vector<TuboEngine::VertexData>& out) override {
         // 中央クアッド
         out.push_back({ { 1, 1, 0, 1 }, {0,0}, {0,0,1} });
@@ -32,6 +38,9 @@ protected:
         }
     }
 
+    /// <summary>
+    /// パーティクル1個分の初期状態を生成する。
+    /// </summary>
     ParticleInfo GenerateParticle() override {
         ParticleInfo p{};
         // 球状に拡散

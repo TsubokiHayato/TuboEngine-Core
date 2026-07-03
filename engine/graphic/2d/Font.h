@@ -12,8 +12,14 @@
 
 namespace TuboEngine {
 
+/// <summary>
+/// DirectWrite を用いてフォントを読み込み、グリフ情報とフォントアトラスを管理するクラス。
+/// </summary>
 class Font {
 public:
+    /// <summary>
+    /// 文字1個分のグリフ情報（送り幅・オフセット・サイズ・アトラス上のUV）。
+    /// </summary>
     struct Glyph {
         float advanceX;
         float offsetX, offsetY;    // bearing
@@ -21,14 +27,35 @@ public:
         Math::Vector2 uvLT, uvRB;  // フォントアトラス上のUV
     };
 
+    /// <summary>
+    /// コンストラクタ。
+    /// </summary>
     Font() = default;
+    /// <summary>
+    /// デストラクタ。
+    /// </summary>
     ~Font() = default;
 
+    /// <summary>
+    /// 初期化処理。
+    /// </summary>
     bool Initialize(const std::wstring& filePath, float fontSize);
+    /// <summary>
+    /// Glyph を取得する。
+    /// </summary>
     const Glyph* GetGlyph(char32_t codePoint);
 
+    /// <summary>
+    /// AtlasSrv を取得する。
+    /// </summary>
     D3D12_GPU_DESCRIPTOR_HANDLE GetAtlasSrv() const { return atlasSrvGPU_; }
+    /// <summary>
+    /// LineHeight を取得する。
+    /// </summary>
     float GetLineHeight() const { return lineHeight_; }
+    /// <summary>
+    /// Baseline を取得する。
+    /// </summary>
     float GetBaseline() const { return baseline_; }
 
 private:
@@ -60,8 +87,17 @@ private:
     // アトラスのピクセルデータ (R8G8B8A8)
     std::vector<uint8_t> atlasPixels_;
 
+    /// <summary>
+    /// AtlasResource の生成。
+    /// </summary>
     bool CreateAtlasResource();
+    /// <summary>
+    /// グリフをフォントアトラスに追加する。
+    /// </summary>
     bool AddGlyphToAtlas(char32_t codePoint);
+    /// <summary>
+    /// AtlasTexture の更新。
+    /// </summary>
     void UpdateAtlasTexture();
 };
 

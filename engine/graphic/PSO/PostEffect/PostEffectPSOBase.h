@@ -7,9 +7,15 @@
 
 class DirectXCommon;
 
+/// <summary>
+/// ポストエフェクト用PSOの共通基底クラス。ルートシグネチャとPSO生成の共通処理を提供する。
+/// </summary>
 class PostEffectPSOBase
 {
 public:
+    /// <summary>
+    /// デストラクタ。
+    /// </summary>
     virtual ~PostEffectPSOBase() = default;
 
     // 初期化

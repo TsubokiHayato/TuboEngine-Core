@@ -6,8 +6,9 @@
 #include "ToonPSO.h"
 #include "Vector3.h"
 
-// HLSL の cbuffer は 16バイト境界規則で float3 が境界をまたげない。
-// C++ 側も同じ配置になるよう pad を挟んで合わせる（これを怠ると色がズレて読まれる）。
+/// <summary>
+/// トゥーン調エフェクトの調整パラメータ。
+/// </summary>
 struct ToonParams {
 	int stepCount = 3;                        // c0.x
 	float toonRate;                           // c0.y
@@ -18,19 +19,46 @@ struct ToonParams {
 	float _pad2;                              // c2.w
 };
 
+/// <summary>
+/// 画面をトゥーン調（階調化）にするポストエフェクト。
+/// </summary>
 class ToonEffect : public PostEffectBase {
 
 public:
+	/// <summary>
+	/// コンストラクタ。
+	/// </summary>
 	ToonEffect();
+	/// <summary>
+	/// デストラクタ。
+	/// </summary>
 	~ToonEffect();
 
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize() override;
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update() override;
+	/// <summary>
+	/// ImGuiによるデバッグ表示。
+	/// </summary>
 	void DrawImGui() override;
+	/// <summary>
+	/// 描画処理。
+	/// </summary>
 	void Draw(ID3D12GraphicsCommandList* commandList) override;
+	/// <summary>
+	/// 調整パラメータを取得する。
+	/// </summary>
 	ToonParams* GetParams() { return toonParams_; }
 
 public:
+	/// <summary>
+	/// メインカメラを設定する。
+	/// </summary>
 	void SetMainCamera(TuboEngine::Camera* camera) override;
 
 private:

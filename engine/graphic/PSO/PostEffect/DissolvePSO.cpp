@@ -16,9 +16,9 @@ void DissolvePSO::CreateGraphicPipeline() {
 
 
 void DissolvePSO::CreateRootSignature() {
-    // ※ 以前は param0 を「t0,t1 の2連続テーブル」にして slot0 起点で読んでいたが、
-    //    重ねがけ（ping-pong）で入力(t0)のスロットが動くと t1(マスク) が破綻する。
-    //    そこでマスク(t1)を専用の param2 で明示バインドする方式に変更した。
+    // マスク(t1)は専用の param2 で明示的にバインドする。
+    // （t0,t1 を1つの連続テーブルにすると、重ねがけ（ping-pong）で入力(t0)の
+    //   スロットが動いたときに t1(マスク) の参照が破綻するため）
     D3D12_ROOT_PARAMETER rootParameters[3] = {};
 
     // t0: gTexture（入力）

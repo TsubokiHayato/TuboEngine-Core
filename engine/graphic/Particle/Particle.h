@@ -1,6 +1,6 @@
 #pragma once
 #include "DirectXCommon.h"
-#include "IParticleEmitter.h" // 重複回避のため追加
+#include "IParticleEmitter.h" // ParticleInfo / ParticleForGPU の共通定義を使用
 #include "Material.h"
 #include "SrvManager.h"
 #include "TextureManager.h"
@@ -17,15 +17,32 @@
 
 
 
-// 古いレガシー方式パーティクル用クラス（Emitterシステムとは別）
+/// <summary>
+/// 旧来のレガシーなパーティクル用クラス（Emitterシステムとは別）。
+/// </summary>
 class Particle {
 public:
 	enum class ParticleType { None, Primitive, Ring, Cylinder, Original };
 
+	/// <summary>
+	/// 初期化処理。
+	/// </summary>
 	void Initialize(ParticleType particleType);
+	/// <summary>
+	/// 更新処理。
+	/// </summary>
 	void Update();
+	/// <summary>
+	/// 描画処理。
+	/// </summary>
 	void Draw();
+	/// <summary>
+	/// パーティクルを指定数発生させる。
+	/// </summary>
 	void Emit(const std::string name, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime, uint32_t count);
+	/// <summary>
+	/// ParticleGroup の生成。
+	/// </summary>
 	void CreateParticleGroup(const std::string& name, const std::string& textureFilePath);
 
 	//明示解放用デストラクタ（カメラ delete と各種 Unmap を実行）
@@ -41,18 +58,35 @@ private:
 	void CreateMaterialData();
 
 	// 旧パーティクル生成関数（新Emitterとは別物）
-	ParticleInfo
-	    CreateNewParticle(std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
+	/// <summary>
+	/// パーティクル1個を生成する（旧方式）。
+	/// </summary>
+	ParticleInfo CreateNewParticle(std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
+	/// <summary>
+	/// 板ポリゴン用パーティクル1個を生成する（旧方式）。
+	/// </summary>
 	ParticleInfo CreateNewParticleForPrimitive(
 	    std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
+	/// <summary>
+	/// リング形状用パーティクル1個を生成する（旧方式）。
+	/// </summary>
 	ParticleInfo CreateNewParticleForRing(
 	    std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
+	/// <summary>
+	/// 円柱形状用パーティクル1個を生成する（旧方式）。
+	/// </summary>
 	ParticleInfo CreateNewParticleForCylinder(
 	    std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
+	/// <summary>
+	/// 独自形状用パーティクル1個を生成する（旧方式）。
+	/// </summary>
 	ParticleInfo CreateNewParticleForOriginal(
 	    std::mt19937& randomEngine, const TuboEngine::Transform& transform, TuboEngine::Math::Vector3 velocity, TuboEngine::Math::Vector4 color, float lifeTime, float currentTime);
 
 private:
+	/// <summary>
+	/// テクスチャ単位でパーティクルをまとめて管理するグループ。インスタンシング用リソースを保持する。
+	/// </summary>
 	struct ParticleGroup {
 		std::string materialFilePath;
 		std::list<ParticleInfo> particleList;
@@ -65,6 +99,9 @@ private:
 		int instancingSrvIndex = -1;
 	};
 
+	/// <summary>
+	/// float の最小値・最大値で表す範囲。
+	/// </summary>
 	struct RangeF {
 		float min;
 		float max;
@@ -73,7 +110,9 @@ private:
 	ParticleType particleType_ = ParticleType::None;
 	std::mt19937 randomEngine_;
 
-	// 頂点データ（旧）
+	/// <summary>
+	/// 頂点データ（旧方式）。
+	/// </summary>
 	struct ModelData {
 		std::vector<TuboEngine::VertexData> vertices;
 	} modelData_;

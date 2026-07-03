@@ -5,6 +5,9 @@
 #include "Model.h"
 
 
+/// <summary>
+/// 3Dモデルの読み込みとキャッシュを管理するクラス（シングルトン）。
+/// </summary>
 class ModelManager
 {
 private:

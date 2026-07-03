@@ -1,6 +1,9 @@
 #pragma once
 #include"PostEffectPSOBase.h"
 
+/// <summary>
+/// 深度ベース輪郭線エフェクト用のPSOを生成・保持するクラス。
+/// </summary>
 class DepthBasedOutlinePSO : public PostEffectPSOBase {
 public:
 	// 初期化

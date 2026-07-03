@@ -11,6 +11,9 @@
 // 前方宣言
 class DirectXCommon;
 
+/// <summary>
+/// オフスクリーンレンダリング用のPSOを生成・保持するクラス。
+/// </summary>
 class OffScreenRenderingPSO
 {
 public:

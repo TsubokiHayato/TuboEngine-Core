@@ -4,6 +4,9 @@
 class WinApp;
 
 namespace TuboEngine {
+/// <summary>
+/// 3Dカメラ。位置・回転からビュー行列と射影行列を生成・管理する。
+/// </summary>
 class Camera {
 public:
 	/// <summary>
