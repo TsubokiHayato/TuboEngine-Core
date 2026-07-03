@@ -180,6 +180,8 @@
     <ClCompile Include="..\engine\graphic\PSO\Blend\BlendPSO.cpp" />
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\BloomPSO.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\DepthBasedOutline\DepthBasedOutlineEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PostEffect\Effects\SSAO\SSAOEffect.cpp" />
+    <ClCompile Include="..\engine\graphic\PSO\PostEffect\SSAOPSO.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.cpp" />
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animation.cpp" />
@@ -273,6 +275,8 @@
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Bloom\BloomEffect.h" />
     <ClInclude Include="..\engine\graphic\PSO\PostEffect\BloomPSO.h" />
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\DepthBasedOutline\DepthBasedOutlineEffect.h" />
+    <ClInclude Include="..\engine\graphic\PostEffect\Effects\SSAO\SSAOEffect.h" />
+    <ClInclude Include="..\engine\graphic\PSO\PostEffect\SSAOPSO.h" />
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.h" />
     <ClInclude Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.h" />
     <ClInclude Include="..\engine\graphic\Animation\Animator.h" />

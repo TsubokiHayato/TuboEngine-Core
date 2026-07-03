@@ -17,6 +17,7 @@
 #include "Effects/randam/randomEffect.h"
 #include "Effects/FlickerGlow/FlickerGlowEffect.h"
 #include "Effects/VHS/VHSEffect.h"
+#include "Effects/SSAO/SSAOEffect.h"
 
 OffScreenRendering* OffScreenRendering::instance = nullptr;
 
@@ -72,6 +73,7 @@ void OffScreenRendering::Initialize() {
 	postEffectManager.AddEffect(std::make_unique<BloomEffect>());             // ブルームエフェクト
 	postEffectManager.AddEffect(std::make_unique<FlickerGlowEffect>());       // フリッカー＋グローエフェクト
 	postEffectManager.AddEffect(std::make_unique<VHSEffect>());              // VHSエフェクト
+	postEffectManager.AddEffect(std::make_unique<SSAOEffect>());             // SSAO（深度ベースの環境遮蔽）
 	// PostEffectManagerの初期化
 	postEffectManager.InitializeAll();
 
@@ -365,6 +367,7 @@ void OffScreenRendering::DrawImGui() {
 	    "Bloom",             // ブルームエフェクト
 	    "FlickerGlow",       // 徐々に点灯＋ノイズ＋軽いグロー
 	    "VHS",               // VHSエフェクト
+	    "SSAO",              // SSAO（深度ベースの環境遮蔽）
 	};
 
 	// 動的な重ねがけリスト（要素値: 0=(なし), 1.. = names のインデックス）
