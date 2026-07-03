@@ -100,7 +100,16 @@ public:
 	void Finalize();
 
 	/// <summary>
-	/// サウンドの読み込み
+	/// サウンドの読み込み（拡張子で自動振り分け）。
+	/// .wav は従来の RIFF ローダ、それ以外（.mp3 等）は Media Foundation でデコードする。
+	/// Media Foundation 経由なら日本語ファイル名も扱える。
+	/// </summary>
+	/// <param name="filename">ファイルの名前（UTF-8）</param>
+	/// <returns>サウンドデータハンドル</returns>
+	uint32_t SoundLoad(const std::string& filename);
+
+	/// <summary>
+	/// サウンドの読み込み（WAV 専用の従来ローダ）。
 	/// </summary>
 	/// <param name="filename">ファイルの名前</param>
 	/// <returns></returns>
@@ -169,6 +178,13 @@ public:
 
 
 private:
+	/// <summary>
+	/// Media Foundation を使ってデコードし PCM として読み込む（.mp3 等）。
+	/// </summary>
+	/// <param name="filename">ファイルの名前（UTF-8）</param>
+	/// <returns>サウンドデータハンドル</returns>
+	uint32_t SoundLoadMedia(const std::string& filename);
+
 	/// <summary>
 	/// サウンドデータの解放
 	/// </summary>
