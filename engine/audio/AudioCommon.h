@@ -67,11 +67,11 @@ public://公開構造体
 	struct SoundData
 	{
 
-		WAVEFORMATEX wfex;//波形フォーマット
+		WAVEFORMATEX wfex{};//波形フォーマット
 
-		BYTE* pBuffer;//バッファの先頭アドレス
+		BYTE* pBuffer = nullptr;//バッファの先頭アドレス
 
-		unsigned int bufferSize;//バッファのサイズ
+		unsigned int bufferSize = 0;//バッファのサイズ
 
 		std::string name;//ファイルパス
 	};
