@@ -156,6 +156,25 @@ public:
         const Math::Vector4& color = {1.0f, 1.0f, 1.0f, 1.0f},
         float scale = 1.0f
     );
+
+    // 識別名(name)付きでテキストを作成する。
+    //  ・CreateText と同様に TextObject を生成しつつ、name 付きの TextDefinition も登録するので、
+    //    後から GetTextByName(name) / SetText(name, ...) で参照・操作できる。
+    //  ・textDefs_ と texts_ の並びを対応させたまま追加する（GetTextByName の添字対応を保つ）。
+    TextObject* CreateTextWithName(
+        const std::string& name,
+        const std::string& fontName,
+        const std::string& text,
+        const Math::Vector2& pos,
+        const Math::Vector4& color = {1.0f, 1.0f, 1.0f, 1.0f},
+        float scale = 1.0f
+    );
+
+    // 識別名(name)で対象テキストの表示文字列を差し替える。
+    //  ・TextObject の表示と、対応する TextDefinition.text の両方を更新する。
+    //  ・見つからなければ何もしない。
+    void SetText(const std::string& name, const std::string& text);
+
     /// <summary>
     /// 指定テキストを削除する。
     /// </summary>

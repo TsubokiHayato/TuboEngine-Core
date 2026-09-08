@@ -980,8 +980,56 @@ TextObject* TextManager::CreateText(const std::string& fontName, const std::stri
 
     TextObject* ptr = textObj.get();
     texts_.push_back(std::move(textObj));
-    textAlive_.push_back(true); 
+    textAlive_.push_back(true);
     return ptr;
+}
+
+// 識別名(name)付きでテキストを生成する。
+// CreateText とほぼ同じだが、name を持つ TextDefinition も一緒に登録することで、
+// 生成後に GetTextByName(name) / SetText(name, ...) で参照・操作できるようにする。
+// textDefs_ / texts_ / textAlive_ を同じ添字で対応させたまま push する。
+TextObject* TextManager::CreateTextWithName(const std::string& name, const std::string& fontName, const std::string& text, const Math::Vector2& pos, const Math::Vector4& color, float scale) {
+    Font* font = GetFont(fontName);
+    if (!font) {
+        std::cerr << "Font not found: " << fontName << std::endl;
+        return nullptr;
+    }
+
+    std::unique_ptr<TextObject> textObj = std::make_unique<TextObject>();
+    textObj->Initialize();
+    textObj->SetFont(font);
+    textObj->SetText(text);
+    textObj->SetPosition(pos);
+    textObj->SetColor(color);
+    textObj->SetScale(scale);
+
+    // 保存用の定義（name で引けるようにする）。
+    TextDefinition definition;
+    definition.name = name;
+    definition.text = text;
+    definition.fontName = fontName;
+    definition.position = pos;
+    definition.color = color;
+    definition.scale = scale;
+    textDefs_.push_back(definition);
+
+    TextObject* ptr = textObj.get();
+    texts_.push_back(std::move(textObj));
+    textAlive_.push_back(true);
+    return ptr;
+}
+
+// 識別名(name)で表示文字列を差し替える。
+// TextObject の表示と、対応する TextDefinition.text の両方を更新する。
+void TextManager::SetText(const std::string& name, const std::string& text) {
+    if (name.empty()) return;
+    for (size_t i = 0; i < textDefs_.size() && i < texts_.size(); ++i) {
+        if (i < textAlive_.size() && !textAlive_[i]) continue; // 削除予約済みは除外
+        if (textDefs_[i].name != name) continue;
+        textDefs_[i].text = text;      // 保存用定義も同期
+        if (texts_[i]) texts_[i]->SetText(text);
+        return;
+    }
 }
 
 // TextObject を削除予約する。
