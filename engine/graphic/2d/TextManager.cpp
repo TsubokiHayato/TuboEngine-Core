@@ -1101,6 +1101,17 @@ void TextManager::ClearAllSprites() {
     spriteAlive_.clear();
 }
 
+// JSON レイアウトの識別名(name)で最初に一致するスプライトを返す。
+// spriteDefs_ と sprites_ は JSON ロード時に並びが対応しているため、名前一致の添字で引ける。
+Sprite* TextManager::GetSpriteByName(const std::string& name) const {
+    if (name.empty()) return nullptr;
+    for (size_t i = 0; i < spriteDefs_.size() && i < sprites_.size(); ++i) {
+        if (i < spriteAlive_.size() && !spriteAlive_[i]) continue; // 削除予約済みは除外
+        if (spriteDefs_[i].name == name) return sprites_[i].get();
+    }
+    return nullptr;
+}
+
 //----------------------------------------------------------------------------
 // レイアウト(JSON)ロード/セーブ
 //----------------------------------------------------------------------------

@@ -223,6 +223,11 @@ public:
     // 全てのスプライトを削除（シーン遷移時などに呼ぶ）
     void ClearAllSprites();
 
+    // JSON レイアウトの識別名(name)で最初に一致するスプライトを取得する。
+    // GetTextByName のスプライト版。spriteDefs_ と sprites_ は JSON ロード時に
+    // 並びが対応しているため、名前一致の添字で引ける。見つからなければ nullptr。
+    Sprite* GetSpriteByName(const std::string& name) const;
+
     // JSON レイアウトのロード/セーブ
     bool LoadTextLayout(const std::string& filePath);
     bool SaveTextLayout(const std::string& filePath) const;
