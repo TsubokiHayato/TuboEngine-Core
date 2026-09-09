@@ -189,6 +189,19 @@ void OffScreenRendering::SetLowHpVignettePower(float power) {
 	params->vignettePower = power;
 }
 
+void OffScreenRendering::SetLowHpVignetteScale(float scale) {
+	auto* vignette = postEffectManager.GetEffect<VignetteEffect>();
+	if (!vignette) {
+		return;
+	}
+	auto* params = vignette->GetParams();
+	if (!params) {
+		return;
+	}
+	// scale を小さくするほど画面中心まで暗くなり、0 で全画面が真っ黒になる。
+	params->vignetteScale = scale;
+}
+
 void OffScreenRendering::SetVHSEffect(bool enabled) {
 	if (vhsEffectIndex_ < 0 || static_cast<size_t>(vhsEffectIndex_) >= postEffectManager.GetEffectCount()) {
 		return;

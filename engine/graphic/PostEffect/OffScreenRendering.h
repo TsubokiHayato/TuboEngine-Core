@@ -139,6 +139,10 @@ public:
 	// HP演出用: Vignetteの強度を継続設定（現在値を保存して、Disableで復帰）
 	void SetLowHpVignetteEnabled(bool enable);
 	void SetLowHpVignettePower(float power);
+	// ビネットの広がり(scale)を設定。小さいほど中心まで暗くなり、0 で全画面が真っ黒。
+	void SetLowHpVignetteScale(float scale);
+	// 現在 LowHp 用ビネットが有効かどうか（シーンをまたいで暗転を引き継ぎたいとき用）。
+	bool IsLowHpVignetteEnabled() const { return lowHpVignetteEnabled_; }
 
 	// VHSEffectを有効/無効にする（有効にすると画面全体がノイズっぽくなります）
 	// enable=falseにすると元のポストエフェクトへ戻す
