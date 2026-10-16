@@ -13,6 +13,9 @@ void TuboEngine::Object3dCommon::Initialize() {
 	blendPso_ = std::make_unique<BlendPSO>();
 	blendPso_->Initialize(kBlendModeNormal);
 
+	skinningPso_ = std::make_unique<PSO>();
+	skinningPso_->Initialize(true);
+
 	// param[10] (gCommonData, VS b1) 用の既定CBVを生成（useInstancing = 0）。
 	// Object3d.VS.hlsl は useInstancing を必ず読むため、どの描画でも param[10]
 	// は初期化済みである必要がある。DrawSettingsCommon でこれをバインドする。
@@ -70,4 +73,12 @@ void TuboEngine::Object3dCommon::DrawSettingsCommon(int blendMode) {
 	TuboEngine::DirectXCommon::GetInstance()->GetCommandList()
 		->SetGraphicsRootConstantBufferView(10, defaultCommonDataResource_->GetGPUVirtualAddress());
 
+}
+
+void TuboEngine::Object3dCommon::DrawSettingsSkinning() {
+	skinningPso_->DrawSettingsCommon();
+
+	// DrawSettingsCommon と同様に param[10] を初期化しておく
+	TuboEngine::DirectXCommon::GetInstance()->GetCommandList()
+		->SetGraphicsRootConstantBufferView(10, defaultCommonDataResource_->GetGPUVirtualAddress());
 }

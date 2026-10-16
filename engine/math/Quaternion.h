@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <numbers>
+#include "Vector3.h"
 
 namespace TuboEngine::Math {
 

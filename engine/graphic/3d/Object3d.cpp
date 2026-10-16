@@ -4,6 +4,7 @@
 #include "Model.h"
 #include "ModelManager.h"
 #include "Object3dCommon.h"
+#include "SkinCluster.h"
 #include "TextureManager.h"
 #include "numbers"
 #include <array>
@@ -196,13 +197,13 @@ void TuboEngine::Object3d::Update() {
 		worldViewProjectionMatrix = worldMatrix;
 	}
 	// 行列を更新する
-	TuboEngine::Math::Matrix4x4 localMatrix = model_->GetRootNodeLocalMatrix();
+	TuboEngine::Math::Matrix4x4 localMatrix = useLocalMatrix_ ? localMatrix_ : model_->GetRootNodeLocalMatrix();
 	if (camera) {
-		transformMatrixData->WVP = model_->GetRootNodeLocalMatrix() * worldMatrix * camera->GetViewProjectionMatrix();
+		transformMatrixData->WVP = localMatrix * worldMatrix * camera->GetViewProjectionMatrix();
 	} else {
-		transformMatrixData->WVP = model_->GetRootNodeLocalMatrix() * worldMatrix * Multiply(viewMatrix, projectionMatrix);
+		transformMatrixData->WVP = localMatrix * worldMatrix * Multiply(viewMatrix, projectionMatrix);
 	}
-	transformMatrixData->World = model_->GetRootNodeLocalMatrix() * worldMatrix;
+	transformMatrixData->World = localMatrix * worldMatrix;
 
 	commandList = TuboEngine::DirectXCommon::GetInstance()->GetCommandList();
 }
@@ -234,7 +235,11 @@ void TuboEngine::Object3d::Draw() {
 
 
 	// 3Dモデルが割り当てられていれば描画
-	if (model_) {
+	if (model_ && skinCluster_) {
+		// MatrixPalette (t1, VertexShader)。スキニング用ルートシグネチャのみ param[11] を持つ
+		commandList->SetGraphicsRootShaderResourceView(11, skinCluster_->paletteResource->GetGPUVirtualAddress());
+		model_->DrawSkinned(skinCluster_->influenceBufferView);
+	} else if (model_) {
 		model_->Draw();
 	} else {
 		// 3Dモデルが割り当てられていない場合はブレイクさせる

@@ -76,6 +76,8 @@ struct LightType {
 
 namespace TuboEngine {
 
+struct SkinCluster;
+
 // Object3d.cpp内で保持している共有ライト用GPUリソースを明示解放する（終了時リークチェック対策）
 void SharedLightResourcesRelease();
 
@@ -228,6 +230,25 @@ public:
 	/// </summary>
 	void SetCubeMapFilePath(const std::string& filePath) { cubeMapFilePath_ = filePath; }
 
+	///-------------------------------------------------------------------------------------------------
+	/// Animation
+	/// <summary>
+	/// モデルのルートノード行列の代わりに使うローカル行列を設定する（アニメーション用）。
+	/// </summary>
+	void SetLocalMatrix(const TuboEngine::Math::Matrix4x4& localMatrix) {
+		localMatrix_ = localMatrix;
+		useLocalMatrix_ = true;
+	}
+	/// <summary>
+	/// SetLocalMatrix の設定を解除し、モデルのルートノード行列に戻す。
+	/// </summary>
+	void ClearLocalMatrix() { useLocalMatrix_ = false; }
+	/// <summary>
+	/// スキニング描画に使う SkinCluster を設定する（nullptr で通常描画）。
+	/// 設定中は Object3dCommon::DrawSettingsSkinning() の後に描画すること。
+	/// </summary>
+	void SetSkinCluster(const TuboEngine::SkinCluster* skinCluster) { skinCluster_ = skinCluster; }
+
 private:
 	//-------------------------------------------------------------------
 	//		メンバ変数
@@ -281,6 +302,12 @@ private:
 	// キューブマップのSRVハンドル
 	// デフォルト : ロストック・ラージ空港の4Kキューブマップ
 	std::string cubeMapFilePath_ = "DDS/rostock_laage_airport_4k.dds";
+
+	// アニメーションで上書きするローカル行列
+	TuboEngine::Math::Matrix4x4 localMatrix_{};
+	bool useLocalMatrix_ = false;
+	// スキニング（nullptr なら通常描画）
+	const TuboEngine::SkinCluster* skinCluster_ = nullptr;
 };
 
 } // namespace TuboEngine

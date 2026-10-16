@@ -67,6 +67,11 @@ public:
 	/// </remarks>
 	void DrawSettingsCommon(int blendMode);
 
+	/// <summary>
+	/// スキニング描画用の共通設定（スキニングする Animator を描画する前に呼ぶ）
+	/// </summary>
+	void DrawSettingsSkinning();
+
 	/*---------------------------------------------------
 	        GETTER & SETTER
 	---------------------------------------------------*/
@@ -80,6 +85,7 @@ public:
 private:
 	std::unique_ptr<PSO> pso = nullptr;  // PSOのユニークポインタ
 	std::unique_ptr<BlendPSO> blendPso_; // ブレンドPSOのユニークポインタ
+	std::unique_ptr<PSO> skinningPso_;   // スキニング用PSOのユニークポインタ
 
 	// param[10] (VS b1, gCommonData) 用の既定CBV（useInstancing=0）。
 	// ルートシグネチャ束縛直後にこれを必ずバインドしておくことで、

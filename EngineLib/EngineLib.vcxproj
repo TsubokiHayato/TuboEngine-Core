@@ -186,6 +186,8 @@
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animation.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\Skeleton.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\SkinCluster.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.cpp" />
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\DissolvePSO.cpp" />
     <ClCompile Include="..\engine\Collider\Collider.cpp" />
@@ -361,6 +363,8 @@
     <ClInclude Include="..\engine\graphic\PSO\Line\LinePSO.h" />
     <ClInclude Include="..\engine\graphic\Animation\KeyFrame.h" />
     <ClInclude Include="..\engine\graphic\Animation\Animation.h" />
+    <ClInclude Include="..\engine\graphic\Animation\Skeleton.h" />
+    <ClInclude Include="..\engine\graphic\Animation\SkinCluster.h" />
     <ClInclude Include="..\engine\math\Quaternion.h" />
     <ClInclude Include="..\engine\graphic\2d\Font.h" />
     <ClInclude Include="..\engine\graphic\2d\TextManager.h" />

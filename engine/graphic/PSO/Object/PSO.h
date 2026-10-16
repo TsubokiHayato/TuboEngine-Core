@@ -10,8 +10,8 @@ public:
 	/// <summary>
 	/// 初期化
 	/// </summary>
-	/// <param name="dxCommon">DirectX共通部分</param>
-	void Initialize();
+	/// <param name="skinning">true ならスキニング用（インフルエンス入力・マトリックスパレット付き）で作成する</param>
+	void Initialize(bool skinning = false);
 
 	/// <summary>
 	/// 共通描画設定
@@ -42,8 +42,8 @@ private:
 	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
 	//DescriptorRange作成
 	D3D12_DESCRIPTOR_RANGE descriptorRange[2] = {};
-	//RootParameter作成。
-	D3D12_ROOT_PARAMETER rootParameters[11] = {};
+	//RootParameter作成。[11] はスキニング時のみ使用（VS t1: MatrixPalette）
+	D3D12_ROOT_PARAMETER rootParameters[12] = {};
 	//Sampler作成
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
 	//シリアライズしてバイナリにする
@@ -53,7 +53,8 @@ private:
 	/*------------
 	  InputLayOut
 	------------*/
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
+	//[3],[4] はスキニング時のみ使用（スロット1: WEIGHT / INDEX）
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[5] = {};
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 	/*------------
 	  BlendState
@@ -90,6 +91,9 @@ private:
 
 
 	BlendMode blendMode = kBlendModeNormal;
+
+	// スキニング用のPSOかどうか
+	bool skinning_ = false;
 
 };
 

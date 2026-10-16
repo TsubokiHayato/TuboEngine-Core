@@ -1,6 +1,8 @@
 #include "PSO.h"
 
-void PSO::Initialize() {
+void PSO::Initialize(bool skinning) {
+
+	skinning_ = skinning;
 
 	device = TuboEngine::DirectXCommon::GetInstance()->GetDevice();
 	commandList = TuboEngine::DirectXCommon::GetInstance()->GetCommandList();
@@ -95,8 +97,13 @@ void PSO::CreateRootSignature() {
 	rootParameters[10].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[10].Descriptor.ShaderRegister = 1; // b1
 
+	// スキニング用: マトリックスパレット (StructuredBuffer, VS t1)
+	rootParameters[11].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+	rootParameters[11].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[11].Descriptor.ShaderRegister = 1; // t1
+
 	descriptionRootSignature.pParameters = rootParameters; // ルートパラメータ配列へのポインタ
-	descriptionRootSignature.NumParameters = _countof(rootParameters); // 配列の長さ
+	descriptionRootSignature.NumParameters = skinning_ ? 12 : 11; // 配列の長さ
 
 	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR; // バイアニアフィルタ
 	staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -149,8 +156,21 @@ void PSO::CreateGraphicPipeline() {
 
 
 
+	// スキニング用: インフルエンス（頂点バッファのスロット1）
+	inputElementDescs[3].SemanticName = "WEIGHT";
+	inputElementDescs[3].SemanticIndex = 0;
+	inputElementDescs[3].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputElementDescs[3].InputSlot = 1;
+	inputElementDescs[3].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+
+	inputElementDescs[4].SemanticName = "INDEX";
+	inputElementDescs[4].SemanticIndex = 0;
+	inputElementDescs[4].Format = DXGI_FORMAT_R32G32B32A32_SINT;
+	inputElementDescs[4].InputSlot = 1;
+	inputElementDescs[4].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+
 	inputLayoutDesc.pInputElementDescs = inputElementDescs;
-	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+	inputLayoutDesc.NumElements = skinning_ ? 5 : 3;
 
 	/*------------
 	  BlendState
@@ -187,7 +207,8 @@ void PSO::CreateGraphicPipeline() {
 	-------------------*/
 
 	//Shaderをコンパイルする
-	vertexShaderBlob = TuboEngine::DirectXCommon::GetInstance()->CompileShader(L"Resources/Shaders/Object3d.VS.hlsl",
+	vertexShaderBlob = TuboEngine::DirectXCommon::GetInstance()->CompileShader(
+		skinning_ ? L"Resources/Shaders/SkinningObject3d.VS.hlsl" : L"Resources/Shaders/Object3d.VS.hlsl",
 		L"vs_6_0");
 	assert(vertexShaderBlob != nullptr);
 

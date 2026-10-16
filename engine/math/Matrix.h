@@ -3,6 +3,7 @@
 #include"Vector3.h"
 #include"Matrix4x4.h"
 #include"Matrix3x3.h"
+#include"Quaternion.h"
 namespace TuboEngine::Math {
 
 inline TuboEngine::Math::Matrix4x4 MakeRotateXMatrix(float radian) {
@@ -259,5 +260,53 @@ inline TuboEngine::Math::Vector3 TransformCoord(const TuboEngine::Math::Vector3&
 		z /= w;
 	}
 	return TuboEngine::Math::Vector3{x, y, z};
+}
+// クォータニオンから回転行列を作る（行ベクトル規約: v * M）
+inline TuboEngine::Math::Matrix4x4 MakeRotateMatrix(const TuboEngine::Math::Quaternion& q) {
+	TuboEngine::Math::Matrix4x4 result = {};
+	float ww = q.w * q.w, xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
+	float wx = q.w * q.x, wy = q.w * q.y, wz = q.w * q.z;
+	float xy = q.x * q.y, xz = q.x * q.z, yz = q.y * q.z;
+
+	result.m[0][0] = ww + xx - yy - zz;
+	result.m[0][1] = 2.0f * (xy + wz);
+	result.m[0][2] = 2.0f * (xz - wy);
+
+	result.m[1][0] = 2.0f * (xy - wz);
+	result.m[1][1] = ww - xx + yy - zz;
+	result.m[1][2] = 2.0f * (yz + wx);
+
+	result.m[2][0] = 2.0f * (xz + wy);
+	result.m[2][1] = 2.0f * (yz - wx);
+	result.m[2][2] = ww - xx - yy + zz;
+
+	result.m[3][3] = 1.0f;
+	return result;
+}
+
+// スケール・クォータニオン回転・平行移動からアフィン行列を作る
+inline TuboEngine::Math::Matrix4x4 MakeAffineMatrix(const TuboEngine::Math::Vector3& scale, const TuboEngine::Math::Quaternion& rotate, const TuboEngine::Math::Vector3& translate) {
+	TuboEngine::Math::Matrix4x4 result = MakeRotateMatrix(rotate);
+	for (int j = 0; j < 3; ++j) {
+		result.m[0][j] *= scale.x;
+		result.m[1][j] *= scale.y;
+		result.m[2][j] *= scale.z;
+	}
+	result.m[3][0] = translate.x;
+	result.m[3][1] = translate.y;
+	result.m[3][2] = translate.z;
+	result.m[3][3] = 1.0f;
+	return result;
+}
+
+// 転置行列
+inline TuboEngine::Math::Matrix4x4 Transpose(const TuboEngine::Math::Matrix4x4& m) {
+	TuboEngine::Math::Matrix4x4 result = {};
+	for (int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			result.m[i][j] = m.m[j][i];
+		}
+	}
+	return result;
 }
 } // namespace TuboEngine::Math

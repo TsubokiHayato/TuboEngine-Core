@@ -34,6 +34,12 @@ public:
 	void Draw();
 
 	/// <summary>
+	/// スキニング描画処理（スロット1にインフルエンスの頂点バッファを追加でセットする）
+	/// </summary>
+	/// <param name="influenceBufferView">SkinCluster のインフルエンス頂点バッファビュー</param>
+	void DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView);
+
+	/// <summary>
 	/// インスタンス描画処理
 	/// </summary>
 	/// <param name="instanceCount">インスタンス数</param>
@@ -64,6 +70,11 @@ public:
 	/// <returns></returns>
 	static Node ReadNode(aiNode* node);
 
+	/// <summary>
+	/// メッシュを持つ最初のノードを探す
+	/// </summary>
+	static const aiNode* FindMeshNode(const aiNode* node);
+
 public:
 	//-----------------------------------------------------------
 	// Setter&Getter
@@ -83,6 +94,11 @@ public:
 	// rootNodeLocalMatrix
 	Matrix4x4 GetRootNodeLocalMatrix() { return modelData.rootNode.localMatrix; }
 	void SetRootNodeLocalMatrix(const Matrix4x4& matrix) { modelData.rootNode.localMatrix = matrix; }
+
+	// モデルデータ（アニメーション・スキニング用）
+	const ModelData& GetModelData() const { return modelData; }
+	// スキニング情報を持っているか
+	bool IsSkinned() const { return !modelData.skinClusterData.empty(); }
 
 private:
 	// モデルデータ

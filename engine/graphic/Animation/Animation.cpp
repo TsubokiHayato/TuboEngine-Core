@@ -1,68 +1,121 @@
 #include "Animation.h"
+#include <assimp/Importer.hpp> // Assimpのインポーターを使用するために必要
+#include <assimp/anim.h>       // Assimpのアニメーションデータを使用するために必要
+#include <assimp/scene.h>      // Assimpのシーンデータを使用するために必要
+#include <cassert>
 
 namespace TuboEngine {
 
-Animation LoadAnimation(const std::string& directoryPath, const std::string& filename) {
+namespace {
+/// <summary>
+/// assimp のアニメーション1本をエンジンの形式に変換する（右手→左手変換込み）。
+/// </summary>
+Animation ConvertAnimation(const aiAnimation* animationAssimp) {
 	Animation animation;
-	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + filename;
-	const aiScene* scene = importer.ReadFile(filePath, 0);                                     // Assimpを使ってファイルを読み込む
-	assert(scene->mNumAnimations != 0);                                                        // アニメーションが存在することを確認
-	aiAnimation* animationAssimp = scene->mAnimations[0];                                      // 最初のアニメーションを取得
-	animation.duration = float(animationAssimp->mDuration / animationAssimp->mTicksPerSecond); // アニメーションの総時間を設定
+	animation.name = animationAssimp->mName.C_Str();
+	// mTicksPerSecond が 0 のファイルもあるので 25 (assimp の既定値) で補う
+	double ticksPerSecond = animationAssimp->mTicksPerSecond != 0.0 ? animationAssimp->mTicksPerSecond : 25.0;
+	animation.duration = float(animationAssimp->mDuration / ticksPerSecond); // アニメーションの総時間を設定
 
 	// NodeAnimationの解析
 	// assimpでは個々のNodeのAnimationをChannelと呼んでいるのでChannelを回してNodeAnimationの情報を取ってくる
 	for (uint32_t channelIndex = 0; channelIndex < animationAssimp->mNumChannels; ++channelIndex) {
 		aiNodeAnim* nodeAnimationAssimp = animationAssimp->mChannels[channelIndex];
-		TuboEngine::NodeAnimation nodeAnimation = animation.nodeAnimations[nodeAnimationAssimp->mNodeName.C_Str()]; // Node名でNodeAnimationを取得
+		NodeAnimation& nodeAnimation = animation.nodeAnimations[nodeAnimationAssimp->mNodeName.C_Str()];
 
-		// 位置のアニメーションカーブを設定（右手→左手変換）
+		// 位置のアニメーションカーブを設定（右手→左手変換: x反転）
 		for (uint32_t i = 0; i < nodeAnimationAssimp->mNumPositionKeys; ++i) {
-			TuboEngine::KeyFrame<TuboEngine::Math::Vector3> keyFrame;
-			keyFrame.time = float(nodeAnimationAssimp->mPositionKeys[i].mTime / animationAssimp->mTicksPerSecond);
-			keyFrame.value = TuboEngine::Math::Vector3(
-			    -nodeAnimationAssimp->mPositionKeys[i].mValue.x, // x反転
-			    nodeAnimationAssimp->mPositionKeys[i].mValue.y, nodeAnimationAssimp->mPositionKeys[i].mValue.z);
+			const aiVectorKey& keyAssimp = nodeAnimationAssimp->mPositionKeys[i];
+			KeyFrameVector3 keyFrame;
+			keyFrame.time = float(keyAssimp.mTime / ticksPerSecond);
+			keyFrame.value = {-keyAssimp.mValue.x, keyAssimp.mValue.y, keyAssimp.mValue.z};
 			nodeAnimation.translate.keyframes.push_back(keyFrame);
 		}
-		// 回転のアニメーションカーブを設定（必要なら左右変換）
+		// 回転のアニメーションカーブを設定（右手→左手変換: y,z反転）
 		for (uint32_t i = 0; i < nodeAnimationAssimp->mNumRotationKeys; ++i) {
-			TuboEngine::KeyFrame<TuboEngine::Math::Quaternion> keyFrame;
-			keyFrame.time = float(nodeAnimationAssimp->mRotationKeys[i].mTime / animationAssimp->mTicksPerSecond);
-			// x, y, z反転（右手→左手変換。必要に応じて調整）
-			keyFrame.value = TuboEngine::Math::Quaternion(
-			    nodeAnimationAssimp->mRotationKeys[i].mValue.w, -nodeAnimationAssimp->mRotationKeys[i].mValue.x, nodeAnimationAssimp->mRotationKeys[i].mValue.y,
-			    nodeAnimationAssimp->mRotationKeys[i].mValue.z);
+			const aiQuatKey& keyAssimp = nodeAnimationAssimp->mRotationKeys[i];
+			KeyFrameQuaternion keyFrame;
+			keyFrame.time = float(keyAssimp.mTime / ticksPerSecond);
+			keyFrame.value = TuboEngine::Math::Quaternion(keyAssimp.mValue.x, -keyAssimp.mValue.y, -keyAssimp.mValue.z, keyAssimp.mValue.w);
 			nodeAnimation.rotate.keyframes.push_back(keyFrame);
 		}
 		// スケールのアニメーションカーブを設定
 		for (uint32_t i = 0; i < nodeAnimationAssimp->mNumScalingKeys; ++i) {
-			TuboEngine::KeyFrame<TuboEngine::Math::Vector3> keyFrame;
-			keyFrame.time = float(nodeAnimationAssimp->mScalingKeys[i].mTime / animationAssimp->mTicksPerSecond);
-			keyFrame.value = TuboEngine::Math::Vector3(nodeAnimationAssimp->mScalingKeys[i].mValue.x, nodeAnimationAssimp->mScalingKeys[i].mValue.y, nodeAnimationAssimp->mScalingKeys[i].mValue.z);
+			const aiVectorKey& keyAssimp = nodeAnimationAssimp->mScalingKeys[i];
+			KeyFrameVector3 keyFrame;
+			keyFrame.time = float(keyAssimp.mTime / ticksPerSecond);
+			keyFrame.value = {keyAssimp.mValue.x, keyAssimp.mValue.y, keyAssimp.mValue.z};
 			nodeAnimation.scale.keyframes.push_back(keyFrame);
 		}
-		// ノード名をキーにしてNodeAnimationを保存
-		std::string nodeName(nodeAnimationAssimp->mNodeName.C_Str());
-		animation.nodeAnimations[nodeName] = nodeAnimation;
 	}
 	// 解析完了
 	return animation;
 }
+} // namespace
 
-std::vector<std::string> GetAnimationNodeNames(const std::string& directoryPath, const std::string& filename) {
-	std::vector<std::string> nodeNames;
+Animation LoadAnimation(const std::string& directoryPath, const std::string& filename, uint32_t animationIndex) {
+	Assimp::Importer importer;
+	std::string filePath = directoryPath + "/" + filename;
+	const aiScene* scene = importer.ReadFile(filePath, 0); // Assimpを使ってファイルを読み込む
+	assert(scene);
+	if (animationIndex >= scene->mNumAnimations) {
+		return Animation{}; // アニメーションが無い
+	}
+	return ConvertAnimation(scene->mAnimations[animationIndex]);
+}
+
+std::vector<Animation> LoadAnimations(const std::string& directoryPath, const std::string& filename) {
+	std::vector<Animation> animations;
 	Assimp::Importer importer;
 	std::string filePath = directoryPath + "/" + filename;
 	const aiScene* scene = importer.ReadFile(filePath, 0);
-	assert(scene->mNumAnimations != 0);
-	aiAnimation* animationAssimp = scene->mAnimations[0];
-	for (uint32_t channelIndex = 0; channelIndex < animationAssimp->mNumChannels; ++channelIndex) {
-		aiNodeAnim* nodeAnimationAssimp = animationAssimp->mChannels[channelIndex];
-		nodeNames.push_back(nodeAnimationAssimp->mNodeName.C_Str());
+	assert(scene);
+	for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
+		animations.push_back(ConvertAnimation(scene->mAnimations[i]));
+	}
+	return animations;
+}
+
+std::vector<std::string> GetAnimationNodeNames(const std::string& directoryPath, const std::string& filename) {
+	std::vector<std::string> nodeNames;
+	Animation animation = LoadAnimation(directoryPath, filename);
+	for (const auto& [nodeName, nodeAnimation] : animation.nodeAnimations) {
+		nodeNames.push_back(nodeName);
 	}
 	return nodeNames;
+}
+
+// Vector3
+TuboEngine::Math::Vector3 CalculateValue(const std::vector<KeyFrameVector3>& keyframes, float time) {
+	assert(!keyframes.empty());
+	if (keyframes.size() == 1 || time <= keyframes[0].time) {
+		return keyframes[0].value;
+	}
+	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
+		size_t next = i + 1;
+		if (time < keyframes[next].time) {
+			float t = (time - keyframes[i].time) / (keyframes[next].time - keyframes[i].time);
+			return TuboEngine::Math::Vector3::Lerp(keyframes[i].value, keyframes[next].value, t);
+		}
+	}
+	return keyframes.back().value;
+}
+
+// Quaternion
+TuboEngine::Math::Quaternion CalculateValue(const std::vector<KeyFrameQuaternion>& keyframes, float time) {
+	assert(!keyframes.empty());
+	if (keyframes.size() == 1 || time <= keyframes[0].time) {
+		return keyframes[0].value;
+	}
+	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
+		size_t next = i + 1;
+		if (time < keyframes[next].time) {
+			float t = (time - keyframes[i].time) / (keyframes[next].time - keyframes[i].time);
+			// QuaternionのSlerp（球面線形補間）
+			return TuboEngine::Math::Quaternion::Slerp(keyframes[i].value, keyframes[next].value, t);
+		}
+	}
+	return keyframes.back().value;
 }
 
 } // namespace TuboEngine

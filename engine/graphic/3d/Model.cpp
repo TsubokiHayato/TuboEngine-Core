@@ -77,6 +77,21 @@ void TuboEngine::Model::Draw() {
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 }
 
+void TuboEngine::Model::DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView) {
+	// 頂点バッファ（スロット0）とインフルエンス（スロット1）をセット
+	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = {vertexBufferView, influenceBufferView};
+	commandList->IASetVertexBuffers(0, 2, vbvs);
+
+	// マテリアルバッファをセット
+	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
+
+	// テクスチャをセット
+	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::TextureManager::GetInstance()->GetSrvHandleGPU(textureFileName_));
+
+	// 描画
+	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+}
+
 void TuboEngine::Model::DrawInstanced(uint32_t instanceCount, D3D12_GPU_VIRTUAL_ADDRESS instanceBufferAddr, D3D12_GPU_VIRTUAL_ADDRESS commonBufferAddr) {
 	// 頂点バッファをセット
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
@@ -160,6 +175,9 @@ TuboEngine::ModelData TuboEngine::Model::LoadModelFile(const std::string& direct
 	assert(scene->HasMeshes());
 
 	modelData.rootNode = ReadNode(scene->mRootNode); // ノードを読み込む
+	if (const aiNode* meshNode = FindMeshNode(scene->mRootNode)) {
+		modelData.meshNodeName = meshNode->mName.C_Str();
+	}
 
 	/*-----------------------------
 	3 : ファイルを読み、ModelDataを構築
@@ -175,6 +193,9 @@ TuboEngine::ModelData TuboEngine::Model::LoadModelFile(const std::string& direct
 		// メッシュの確認
 		assert(mesh->HasNormals());
 		assert(mesh->HasTextureCoords(0));
+
+		// メッシュの頂点番号 → 展開後の modelData.vertices の番号（スキニングのウェイト対応付けに使う）
+		std::vector<std::vector<uint32_t>> expandedIndices(mesh->mNumVertices);
 
 		/*--------------------------------
 		            faceを解析
@@ -200,6 +221,7 @@ TuboEngine::ModelData TuboEngine::Model::LoadModelFile(const std::string& direct
 				// aiProcess_MakeLeftHandedはz*=-1で、右手->左手に変換するので手動で対処
 				vertex.position.x *= -1.0f;
 				vertex.normal.x *= -1.0f;
+				expandedIndices[vetexIndex].push_back(uint32_t(modelData.vertices.size()));
 				modelData.vertices.push_back(vertex);
 			}
 
@@ -216,6 +238,33 @@ TuboEngine::ModelData TuboEngine::Model::LoadModelFile(const std::string& direct
 				}
 			}
 		}
+
+		/*--------------------------------
+		        boneを解析（スキニング）
+		--------------------------------*/
+
+		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex) {
+			aiBone* bone = mesh->mBones[boneIndex];
+			std::string jointName = bone->mName.C_Str();
+			JointWeightData& jointWeightData = modelData.skinClusterData[jointName];
+
+			// BindPoseMatrix に戻し、右手→左手に変換してから再び逆行列にする
+			aiMatrix4x4 bindPoseMatrixAssimp = bone->mOffsetMatrix;
+			bindPoseMatrixAssimp.Inverse();
+			aiVector3D scale, translate;
+			aiQuaternion rotate;
+			bindPoseMatrixAssimp.Decompose(scale, rotate, translate);
+			TuboEngine::Math::Matrix4x4 bindPoseMatrix = TuboEngine::Math::MakeAffineMatrix(
+			    {scale.x, scale.y, scale.z}, TuboEngine::Math::Quaternion(rotate.x, -rotate.y, -rotate.z, rotate.w), {-translate.x, translate.y, translate.z});
+			jointWeightData.inverseBindPoseMatrix = TuboEngine::Math::Inverse(bindPoseMatrix);
+
+			for (uint32_t weightIndex = 0; weightIndex < bone->mNumWeights; ++weightIndex) {
+				const aiVertexWeight& weight = bone->mWeights[weightIndex];
+				for (uint32_t expandedIndex : expandedIndices[weight.mVertexId]) {
+					jointWeightData.vertexWeights.push_back({weight.mWeight, expandedIndex});
+				}
+			}
+		}
 	}
 
 	return modelData;
@@ -224,16 +273,15 @@ TuboEngine::ModelData TuboEngine::Model::LoadModelFile(const std::string& direct
 TuboEngine::Node TuboEngine::Model::ReadNode(aiNode* node) {
 
 	Node result;
-	aiMatrix4x4 aiLocalMatrix = node->mTransformation; // ノードのローカル行列を取得
-	aiLocalMatrix.Transpose();                         // 行列を転置
+	// ノードのローカル変換を分解し、右手→左手に変換する（頂点の x 反転と揃える）
+	aiVector3D scale, translate;
+	aiQuaternion rotate;
+	node->mTransformation.Decompose(scale, rotate, translate);
+	result.transform.scale = {scale.x, scale.y, scale.z};
+	result.transform.rotate = TuboEngine::Math::Quaternion(rotate.x, -rotate.y, -rotate.z, rotate.w);
+	result.transform.translate = {-translate.x, translate.y, translate.z};
+	result.localMatrix = TuboEngine::Math::MakeAffineMatrix(result.transform.scale, result.transform.rotate, result.transform.translate);
 
-	// localMatrix のすべての要素を設定
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			result.localMatrix.m[i][j] = aiLocalMatrix[i][j];
-		}
-	}
-	
 	result.name = node->mName.C_Str();          // ノード名を取得
 	result.children.resize(node->mNumChildren); // 子ノードの数を取得
 	for (uint32_t childIndex = 0; childIndex < node->mNumChildren; ++childIndex) {
@@ -243,4 +291,16 @@ TuboEngine::Node TuboEngine::Model::ReadNode(aiNode* node) {
 	}
 
 	return result;
+}
+
+const aiNode* TuboEngine::Model::FindMeshNode(const aiNode* node) {
+	if (node->mNumMeshes > 0) {
+		return node;
+	}
+	for (uint32_t childIndex = 0; childIndex < node->mNumChildren; ++childIndex) {
+		if (const aiNode* found = FindMeshNode(node->mChildren[childIndex])) {
+			return found;
+		}
+	}
+	return nullptr;
 }

@@ -234,6 +234,12 @@
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\graphic\Animation\Skeleton.cpp">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\graphic\Animation\SkinCluster.cpp">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.cpp">
       <Filter>projects\engine\graphic\PostEffect\Effects\Dissolve</Filter>
     </ClCompile>
@@ -768,6 +774,12 @@
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\graphic\Animation\Animation.h">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\graphic\Animation\Skeleton.h">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\graphic\Animation\SkinCluster.h">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\math\Quaternion.h">
