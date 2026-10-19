@@ -183,6 +183,14 @@ private:
 	// DirectXCommon SRVヒープ内のスロット（0=シーン,1=深度/マスク は使用済みなので2,3）
 	static constexpr uint32_t kPpSrvIndex_[2] = {2, 3};
 
+	///-----------------------------------------------------------------------
+	///         ゲームビュー用テクスチャ（デバッグ時、ImGui の Game ウィンドウに表示）
+	///-----------------------------------------------------------------------
+	Microsoft::WRL::ComPtr<ID3D12Resource> gameViewTexture_;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> gameViewRtvHeap_;
+	D3D12_CPU_DESCRIPTOR_HANDLE gameViewRtvHandle_{};
+	D3D12_RESOURCE_STATES gameViewState_ = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
 	// レンダーテクスチャの現在の状態
 	D3D12_RESOURCE_STATES renderTextureState = D3D12_RESOURCE_STATE_RENDER_TARGET;
 

@@ -4,9 +4,15 @@
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"
+#include "externals/imgui/imgui_internal.h" // DockBuilder（初期レイアウト構築用）
 #endif // USE_IMGUI
+#include "Input.h"
+#include "EditorPanels.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
+#include <cstring>
 
 #ifdef USE_IMGUI
 namespace {
@@ -108,7 +114,7 @@ void ImGuiManager::Initialize() {
 	// descriptorHeapの設定
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = 1;
+	desc.NumDescriptors = 2; // 0=フォント, 1=ゲームビュー用テクスチャ
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	// descriptorHeapの生成
 	HRESULT result = TuboEngine::DirectXCommon::GetInstance()->GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&srvHeap));
@@ -151,6 +157,23 @@ void ImGuiManager::Begin() {
 	ImGui::NewFrame();
 
 #ifdef IMGUI_HAS_DOCK
+	// ショートカット（Unity 準拠）。テキスト入力中は無効。
+	if (!ImGui::GetIO().WantTextInput) {
+		// F1: Unity 風レイアウト ⇔ 従来(ゲーム画面の上にウィンドウを重ねる)
+		if (ImGui::IsKeyPressed(ImGuiKey_F1, false)) {
+			gameViewEnabled_ = !gameViewEnabled_;
+		}
+		// Ctrl+Shift+P: 一時停止/再開、Ctrl+Alt+P: 1フレーム進める
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.KeyCtrl && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+			paused_ = !paused_;
+		}
+		if (io.KeyCtrl && io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+			paused_ = true;
+			stepRequested_ = true;
+		}
+	}
+
 	// 上部メニューバー。ドックスペースより先に出して作業領域を確保する。
 	if (ImGui::BeginMainMenuBar()) {
 		ImGui::TextDisabled("TuboEngine");
@@ -158,6 +181,12 @@ void ImGuiManager::Begin() {
 		if (ImGui::BeginMenu("Window")) {
 			// 全デバッグウィンドウの一括表示/非表示（これをOFFにすれば全部消える）
 			ImGui::MenuItem("全ウィンドウ表示", nullptr, &debugWindowsVisible_);
+			ImGui::Separator();
+			ImGui::TextDisabled("エディタ:");
+			ImGui::MenuItem("Hierarchy", nullptr, &showHierarchy_);
+			ImGui::MenuItem("Inspector", nullptr, &showInspector_);
+			ImGui::MenuItem("Project", nullptr, &showProject_);
+			ImGui::MenuItem("Console", nullptr, &showConsole_);
 			ImGui::Separator();
 			ImGui::TextDisabled("個別パネル:");
 			if (panelOpen_.empty()) {
@@ -169,21 +198,66 @@ void ImGuiManager::Begin() {
 			}
 			ImGui::EndMenu();
 		}
+		// Layout メニュー：Unity 風レイアウト（ゲーム画面を Game ウィンドウ内に表示）の切り替え
+		if (ImGui::BeginMenu("Layout")) {
+			ImGui::MenuItem("Game ウィンドウに表示 (Unity風)", "F1", &gameViewEnabled_);
+			if (ImGui::MenuItem("レイアウトをリセット")) {
+				resetLayoutRequested_ = true;
+			}
+			ImGui::EndMenu();
+		}
 		// Scene メニュー：登録済みシーンの一覧から切り替え（SceneManager が中身を描く）
 		if (ImGui::BeginMenu("Scene")) {
 			SceneManager::GetInstance()->DrawSceneMenuItems();
 			ImGui::EndMenu();
 		}
+		// 中央に 再生/一時停止/コマ送り/リロード のツールバー
+		DrawToolbar();
 		// 右側にFPSを表示
 		ImGui::SameLine(ImGui::GetWindowWidth() - 96.0f);
 		ImGui::Text("FPS %.0f", ImGui::GetIO().Framerate);
 		ImGui::EndMainMenuBar();
 	}
 
-	// メインビューポート全体をドックスペース化する。
-	// PassthruCentralNode により中央(空き領域)は透過 → 3D/ゲーム画面が見える(Unityのシーンビュー風)。
-	// 各デバッグウィンドウはこの周囲にドッキングして配置できる。
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+	// メインビューポート全体をドックスペース化する（ID固定＝imgui.ini にレイアウトが保存される）。
+	const ImGuiID dockspaceId = ImGui::GetID("TuboEngineDockSpace");
+	if (IsGameViewActive()) {
+		// 起動直後に一度だけ、保存済みレイアウトが今の構成(Hierarchy等あり)か確認する
+		if (!layoutChecked_) {
+			layoutChecked_ = true;
+			const ImGuiWindowSettings* hierarchySettings = ImGui::FindWindowSettingsByID(ImHashStr("Hierarchy"));
+			if (!hierarchySettings || hierarchySettings->DockId == 0) {
+				resetLayoutRequested_ = true;
+			}
+		}
+		// 初回(保存済みレイアウト無し) or リセット要求時に初期レイアウトを組む
+		ImGuiDockNode* root = ImGui::DockBuilderGetNode(dockspaceId);
+		if (resetLayoutRequested_ || !root || !root->IsSplitNode()) {
+			BuildDefaultLayout(dockspaceId);
+			resetLayoutRequested_ = false;
+		}
+		// ゲーム画面は Game ウィンドウ内に描くので、中央も通常のドック領域にする
+		ImGui::DockSpaceOverViewport(dockspaceId, ImGui::GetMainViewport());
+		DrawGameWindow();
+		if (showHierarchy_) {
+			DrawHierarchyWindow();
+		}
+		if (showInspector_) {
+			DrawInspectorWindow();
+		}
+		if (showProject_) {
+			Editor::DrawProjectWindow(&showProject_);
+		}
+		if (showConsole_) {
+			Editor::DrawConsoleWindow(&showConsole_);
+		}
+		AutoDockFloatingWindows();
+	} else {
+		// 従来モード：中央(空き領域)は透過 → 背面に全画面描画したゲーム画面が見える
+		ImGui::DockSpaceOverViewport(dockspaceId, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+		// ゲーム画面がウィンドウ全体なのでマウス座標の補正は不要
+		Input::GetInstance()->SetMouseRemap({0.0f, 0.0f}, {1.0f, 1.0f});
+	}
 #endif // IMGUI_HAS_DOCK
 #endif // USE_IMGUI
 }
@@ -207,6 +281,384 @@ void ImGuiManager::Draw() {
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
 #endif // USE_IMGUI
 }
+
+void ImGuiManager::SetGameViewTexture(ID3D12Resource* texture) {
+	gameViewTexture_ = texture;
+#ifdef USE_IMGUI
+	if (!texture) {
+		return;
+	}
+	// ImGui 用ヒープのスロット1にゲームビュー用テクスチャの SRV を作る
+	auto device = TuboEngine::DirectXCommon::GetInstance()->GetDevice();
+	const UINT increment = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	D3D12_CPU_DESCRIPTOR_HANDLE cpu = srvHeap->GetCPUDescriptorHandleForHeapStart();
+	cpu.ptr += increment;
+	gameViewSrvGpu_ = srvHeap->GetGPUDescriptorHandleForHeapStart();
+	gameViewSrvGpu_.ptr += increment;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = texture->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
+	device->CreateShaderResourceView(texture, &srvDesc, cpu);
+#endif // USE_IMGUI
+}
+
+bool ImGuiManager::IsGameViewActive() const {
+#if defined(USE_IMGUI) && defined(IMGUI_HAS_DOCK)
+	// 「全ウィンドウ表示」OFF の時は従来通りゲーム画面を全画面表示する
+	return gameViewEnabled_ && debugWindowsVisible_ && gameViewTexture_ != nullptr;
+#else
+	return false;
+#endif
+}
+
+bool ImGuiManager::ConsumeSceneUpdate() {
+	// 再生中は毎フレーム更新。一時停止中はコマ送り要求があった時だけ1回更新する。
+	if (!paused_) {
+		return true;
+	}
+	if (stepRequested_) {
+		stepRequested_ = false;
+		return true;
+	}
+	return false;
+}
+
+#if defined(USE_IMGUI) && defined(IMGUI_HAS_DOCK)
+namespace {
+// エディタ自身のウィンドウ名（Hierarchy への列挙や自動ドッキングの対象外）
+constexpr const char* kEditorWindowNames[] = {"Game", "Hierarchy", "Inspector", "Project", "Console", "Debug##Default"};
+
+// デバッグウィンドウ（シーンや各マネージャが出すウィンドウ）として扱うか
+bool IsDebugWindow(const ImGuiWindow* window) {
+	// ドッキング中のウィンドウは ParentWindow がドックノードのホストになるので、それは除外しない
+	if (window->ParentWindow != nullptr && !window->DockIsActive) {
+		return false;
+	}
+	// （ドッキング中は ChildWindow フラグも付くので同様に除外しない）
+	const ImGuiWindowFlags excluded =
+	    (window->DockIsActive ? 0 : ImGuiWindowFlags_ChildWindow) | ImGuiWindowFlags_Popup | ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_NoDocking;
+	if (window->Flags & excluded) {
+		return false;
+	}
+	if (std::strncmp(window->Name, "##", 2) == 0) {
+		return false;
+	}
+	for (const char* name : kEditorWindowNames) {
+		if (std::strcmp(window->Name, name) == 0) {
+			return false;
+		}
+	}
+	return true;
+}
+} // namespace
+
+void ImGuiManager::BuildDefaultLayout(ImGuiID dockspaceId) {
+	const ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::DockBuilderRemoveNode(dockspaceId);
+	ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+	ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
+
+	// Unity の既定レイアウトと同じ分割:
+	//   右(全高)=Inspector / 下=Project・Console / 左上=Hierarchy / 中央=Game
+	ImGuiID centerId = dockspaceId;
+	const ImGuiID rightId = ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.24f, nullptr, &centerId);
+	const ImGuiID bottomId = ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Down, 0.30f, nullptr, &centerId);
+	const ImGuiID leftId = ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Left, 0.20f, nullptr, &centerId);
+
+	ImGui::DockBuilderDockWindow("Game", centerId);
+	ImGui::DockBuilderDockWindow("Hierarchy", leftId);
+	ImGui::DockBuilderDockWindow("Inspector", rightId);
+	ImGui::DockBuilderDockWindow("Project", bottomId);
+	ImGui::DockBuilderDockWindow("Console", bottomId);
+	// 既に存在するデバッグウィンドウは Inspector の隣(タブ)へまとめる
+	for (ImGuiWindow* window : GImGui->Windows) {
+		if (IsDebugWindow(window)) {
+			ImGui::DockBuilderDockWindow(window->Name, rightId);
+		}
+	}
+	ImGui::DockBuilderFinish(dockspaceId);
+	autoDockedWindows_.clear();
+}
+
+void ImGuiManager::DrawToolbar() {
+	const float height = ImGui::GetFrameHeight();
+	const float width = height * 1.6f;
+	const float spacing = 4.0f;
+	const float total = width * 4.0f + spacing * 3.0f;
+	ImGui::SameLine((ImGui::GetWindowWidth() - total) * 0.5f);
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	const ImU32 iconColor = IM_COL32(220, 220, 220, 255);
+
+	// icon: 0=再生 1=一時停止 2=コマ送り 3=リロード
+	auto button = [&](const char* id, int icon, bool active, const char* tooltip) {
+		const ImVec2 p = ImGui::GetCursorScreenPos();
+		const bool pressed = ImGui::InvisibleButton(id, ImVec2(width, height));
+		const bool hovered = ImGui::IsItemHovered();
+		const ImVec4 bg = active ? ImVec4(0.24f, 0.52f, 0.88f, 1.0f) : hovered ? ImVec4(0.32f, 0.32f, 0.32f, 1.0f) : ImVec4(0.27f, 0.27f, 0.27f, 1.0f);
+		drawList->AddRectFilled(p, ImVec2(p.x + width, p.y + height), ImGui::GetColorU32(bg), 3.0f);
+
+		const ImVec2 c(p.x + width * 0.5f, p.y + height * 0.5f);
+		const float r = height * 0.26f;
+		switch (icon) {
+		case 0:
+			drawList->AddTriangleFilled(ImVec2(c.x - r * 0.8f, c.y - r), ImVec2(c.x - r * 0.8f, c.y + r), ImVec2(c.x + r, c.y), iconColor);
+			break;
+		case 1:
+			drawList->AddRectFilled(ImVec2(c.x - r * 0.8f, c.y - r), ImVec2(c.x - r * 0.25f, c.y + r), iconColor);
+			drawList->AddRectFilled(ImVec2(c.x + r * 0.25f, c.y - r), ImVec2(c.x + r * 0.8f, c.y + r), iconColor);
+			break;
+		case 2:
+			drawList->AddTriangleFilled(ImVec2(c.x - r, c.y - r), ImVec2(c.x - r, c.y + r), ImVec2(c.x + r * 0.5f, c.y), iconColor);
+			drawList->AddRectFilled(ImVec2(c.x + r * 0.55f, c.y - r), ImVec2(c.x + r, c.y + r), iconColor);
+			break;
+		default:
+			drawList->PathArcTo(c, r, 0.6f, 5.6f, 16);
+			drawList->PathStroke(iconColor, ImDrawFlags_None, 2.0f);
+			{
+				// 矢印の先端
+				const ImVec2 tip(c.x + r * std::cos(0.6f), c.y + r * std::sin(0.6f));
+				drawList->AddTriangleFilled(ImVec2(tip.x - r * 0.55f, tip.y), ImVec2(tip.x + r * 0.45f, tip.y - r * 0.15f), ImVec2(tip.x, tip.y + r * 0.6f), iconColor);
+			}
+			break;
+		}
+		if (hovered) {
+			ImGui::SetTooltip("%s", tooltip);
+		}
+		ImGui::SameLine(0.0f, spacing);
+		return pressed;
+	};
+
+	if (button("##play", 0, !paused_, "再生 / 再開 (Ctrl+Shift+P)")) {
+		paused_ = false;
+	}
+	if (button("##pause", 1, paused_, "一時停止 (Ctrl+Shift+P)")) {
+		paused_ = !paused_;
+	}
+	if (button("##step", 2, false, "1フレーム進める (Ctrl+Alt+P)")) {
+		paused_ = true;
+		stepRequested_ = true;
+	}
+	if (button("##reload", 3, false, "シーンをリロード")) {
+		SceneManager::GetInstance()->ChangeScene(SceneManager::GetInstance()->GetCurrentSceneNo());
+		// 一時停止中でもシーン切り替えを処理させる
+		stepRequested_ = paused_;
+	}
+}
+
+void ImGuiManager::DrawGameWindow() {
+	TuboEngine::Input* input = TuboEngine::Input::GetInstance();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	const ImGuiWindowFlags flags =
+	    ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove;
+	const bool visible = ImGui::Begin("Game", nullptr, flags);
+	ImGui::PopStyleVar();
+
+	if (!visible) {
+		// タブが裏に隠れている等で表示されていない
+		input->SetMouseRemap({0.0f, 0.0f}, {1.0f, 1.0f});
+		ImGui::End();
+		return;
+	}
+
+	// ゲーム解像度（＝テクスチャサイズ）の縦横比を保って領域いっぱいに表示（余白は黒帯）
+	const D3D12_RESOURCE_DESC desc = gameViewTexture_->GetDesc();
+	const float texW = static_cast<float>(desc.Width);
+	const float texH = static_cast<float>(desc.Height);
+	const ImVec2 areaMin = ImGui::GetCursorScreenPos();
+	const ImVec2 area = ImGui::GetContentRegionAvail();
+	const float scale = (std::max)(0.0f, (std::min)(area.x / texW, area.y / texH));
+	gameViewDisplayScale_ = scale;
+	const ImVec2 size(texW * scale, texH * scale);
+	const ImVec2 imageMin(std::floor(areaMin.x + (area.x - size.x) * 0.5f), std::floor(areaMin.y + (area.y - size.y) * 0.5f));
+	const ImVec2 imageMax(imageMin.x + size.x, imageMin.y + size.y);
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	drawList->AddRectFilled(areaMin, ImVec2(areaMin.x + area.x, areaMin.y + area.y), IM_COL32(0, 0, 0, 255));
+	drawList->AddImage(static_cast<ImTextureID>(gameViewSrvGpu_.ptr), imageMin, imageMax);
+	// 一時停止中は分かるよう表示する
+	if (paused_) {
+		const char* label = "一時停止中";
+		const ImVec2 textSize = ImGui::CalcTextSize(label);
+		const ImVec2 p(imageMin.x + 8.0f, imageMin.y + 8.0f);
+		drawList->AddRectFilled(p, ImVec2(p.x + textSize.x + 12.0f, p.y + textSize.y + 6.0f), IM_COL32(0, 0, 0, 170), 3.0f);
+		drawList->AddText(ImVec2(p.x + 6.0f, p.y + 3.0f), IM_COL32(255, 200, 60, 255), label);
+	}
+	// 領域を確保（カーソルを進めるだけ）
+	ImGui::Dummy(area);
+
+	// Game ウィンドウ上のマウス操作はゲーム側に渡す（ImGui が入力を奪わないようにする）
+	if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(imageMin, imageMax)) {
+		ImGui::SetNextFrameWantCaptureMouse(false);
+	}
+
+	// ゲーム側の GetMousePosition がゲーム解像度の座標になるよう補正
+	if (size.x > 0.0f && size.y > 0.0f) {
+		const ImVec2 viewportPos = ImGui::GetMainViewport()->Pos;
+		input->SetMouseRemap({imageMin.x - viewportPos.x, imageMin.y - viewportPos.y}, {texW / size.x, texH / size.y});
+	}
+	ImGui::End();
+}
+
+void ImGuiManager::DrawHierarchyWindow() {
+	if (!ImGui::Begin("Hierarchy", &showHierarchy_)) {
+		ImGui::End();
+		return;
+	}
+
+	// 選択したが、まだ存在しなかった(非表示だった)ウィンドウを前面へ
+	if (!focusRequest_.empty() && ImGui::FindWindowByName(focusRequest_.c_str())) {
+		ImGui::SetWindowFocus(focusRequest_.c_str());
+		focusRequest_.clear();
+	}
+
+	// 検索欄
+	static ImGuiTextFilter filter;
+	ImGui::SetNextItemWidth(-FLT_MIN);
+	if (ImGui::InputTextWithHint("##search", "検索", filter.InputBuf, IM_ARRAYSIZE(filter.InputBuf))) {
+		filter.Build();
+	}
+
+	// 列挙: 前フレームに表示されていたデバッグウィンドウ（生成順）＋ 非表示中の登録パネル
+	std::vector<std::string> names;
+	for (ImGuiWindow* window : GImGui->Windows) {
+		if (window->WasActive && IsDebugWindow(window)) {
+			names.emplace_back(window->Name);
+		}
+	}
+	for (const auto& [name, open] : panelOpen_) {
+		if (std::find(names.begin(), names.end(), name) == names.end()) {
+			names.push_back(name);
+		}
+	}
+
+	const std::string sceneName = SceneManager::GetInstance()->GetCurrentSceneName();
+	if (ImGui::TreeNodeEx("##scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", sceneName.c_str())) {
+		for (const std::string& name : names) {
+			if (!filter.PassFilter(name.c_str())) {
+				continue;
+			}
+			ImGui::PushID(name.c_str());
+			// BeginPanel で登録されたパネルは表示/非表示を切り替えられる
+			auto it = panelOpen_.find(name);
+			bool* open = (it != panelOpen_.end()) ? &it->second : nullptr;
+			if (open) {
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1.0f, 1.0f));
+				ImGui::Checkbox("##visible", open);
+				ImGui::PopStyleVar();
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("表示 / 非表示");
+				}
+			} else {
+				ImGui::Dummy(ImVec2(ImGui::GetFontSize() + 2.0f, ImGui::GetFontSize()));
+			}
+			ImGui::SameLine();
+
+			const bool hidden = open && !*open;
+			if (hidden) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+			}
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
+			if (selectedWindow_ == name) {
+				flags |= ImGuiTreeNodeFlags_Selected;
+			}
+			ImGui::TreeNodeEx("##item", flags, "%s", name.c_str());
+			if (hidden) {
+				ImGui::PopStyleColor();
+			}
+			// クリックで選択 → そのウィンドウを(非表示なら表示して)前面へ
+			if (ImGui::IsItemClicked()) {
+				selectedWindow_ = name;
+				if (open) {
+					*open = true;
+				}
+				focusRequest_ = name;
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
+	// シーン切り替え（Scene メニューと同じ内容）
+	ImGui::Spacing();
+	if (ImGui::CollapsingHeader("シーン一覧")) {
+		SceneManager::GetInstance()->DrawSceneMenuItems();
+	}
+	ImGui::End();
+}
+
+void ImGuiManager::DrawInspectorWindow() {
+	if (!ImGui::Begin("Inspector", &showInspector_)) {
+		ImGui::End();
+		return;
+	}
+
+	ImGui::SeparatorText("選択中");
+	if (selectedWindow_.empty()) {
+		ImGui::TextDisabled("Hierarchy で項目を選択してください");
+	} else {
+		ImGui::Text("%s", selectedWindow_.c_str());
+		auto it = panelOpen_.find(selectedWindow_);
+		if (it != panelOpen_.end()) {
+			ImGui::Checkbox("表示", &it->second);
+			ImGui::SameLine();
+		}
+		if (ImGui::SmallButton("前面に表示")) {
+			if (it != panelOpen_.end()) {
+				it->second = true;
+			}
+			focusRequest_ = selectedWindow_;
+		}
+	}
+	ImGui::TextWrapped("各デバッグウィンドウはこのエリアにタブで並びます。");
+
+	ImGui::SeparatorText("シーン");
+	ImGui::Text("現在: %s (%d)", SceneManager::GetInstance()->GetCurrentSceneName().c_str(), SceneManager::GetInstance()->GetCurrentSceneNo());
+
+	ImGui::SeparatorText("実行");
+	ImGui::Text("状態: %s", paused_ ? "一時停止中" : "再生中");
+	const ImGuiIO& io = ImGui::GetIO();
+	ImGui::Text("FPS: %.1f  (%.2f ms)", io.Framerate, io.Framerate > 0.0f ? 1000.0f / io.Framerate : 0.0f);
+
+	ImGui::SeparatorText("Game ビュー");
+	if (gameViewTexture_) {
+		const D3D12_RESOURCE_DESC desc = gameViewTexture_->GetDesc();
+		ImGui::Text("解像度: %llu x %u", static_cast<unsigned long long>(desc.Width), desc.Height);
+		ImGui::Text("表示倍率: %.0f%%", gameViewDisplayScale_ * 100.0f);
+	}
+	ImGui::End();
+}
+
+void ImGuiManager::AutoDockFloatingWindows() {
+	// ドック先＝Inspector ウィンドウがいるドックノード（Inspector を閉じている/浮かせている時は何もしない）
+	ImGuiWindow* inspector = ImGui::FindWindowByName("Inspector");
+	if (!inspector || inspector->DockId == 0) {
+		return;
+	}
+	const ImGuiID targetId = inspector->DockId;
+
+	// 走査中に Windows を書き換えないよう、先に対象の名前を集める
+	std::vector<const char*> names;
+	for (ImGuiWindow* window : GImGui->Windows) {
+		if (!window->WasActive || window->DockNode != nullptr || window->DockId != 0 || !IsDebugWindow(window)) {
+			continue;
+		}
+		// 1セッションで1回だけ（ユーザーが自分で切り離したウィンドウは戻さない）
+		if (std::find(autoDockedWindows_.begin(), autoDockedWindows_.end(), window->ID) != autoDockedWindows_.end()) {
+			continue;
+		}
+		autoDockedWindows_.push_back(window->ID);
+		names.push_back(window->Name);
+	}
+	for (const char* name : names) {
+		ImGui::DockBuilderDockWindow(name, targetId);
+	}
+}
+#endif // USE_IMGUI && IMGUI_HAS_DOCK
 
 bool* ImGuiManager::PanelPtr(const char* name) {
 	// 未登録なら「表示中(true)」で登録。Window メニューにこの名前が並ぶ。

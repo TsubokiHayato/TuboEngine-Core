@@ -202,6 +202,7 @@
     <ClCompile Include="..\engine\base\Common\DirectXCommon.cpp" />
     <ClCompile Include="..\engine\input\Input.cpp" />
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp" />
+    <ClCompile Include="..\engine\imgui\EditorPanels.cpp" />
     <ClCompile Include="..\engine\imgui\ImGuiManager.cpp" />
     <ClCompile Include="..\engine\scene\IScene.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\GaussianBlurEffect\GaussianBlurEffect.cpp" />
@@ -320,6 +321,7 @@
     <ClInclude Include="..\engine\math\Vector4.h" />
     <ClInclude Include="..\engine\graphic\data\VertexData.h" />
     <ClInclude Include="..\engine\base\Common\WinApp.h" />
+    <ClInclude Include="..\engine\imgui\EditorPanels.h" />
     <ClInclude Include="..\engine\imgui\ImGuiManager.h" />
     <ClInclude Include="..\engine\scene\IScene.h" />
     <ClInclude Include="..\engine\graphic\Particle\Particle.h" />

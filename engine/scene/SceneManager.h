@@ -53,6 +53,11 @@ public:
 	void Initialize(int startSceneNo);
 	// 現在のシーン番号を取得
 	int GetCurrentSceneNo() const { return currentSceneNo; }
+	// 現在のシーンの登録名を取得（未登録なら "(no name)"）。エディタの Hierarchy 表示用
+	std::string GetCurrentSceneName() const {
+		auto it = debugNames_.find(currentSceneNo);
+		return (it != debugNames_.end() && !it->second.empty()) ? it->second : std::string("(no name)");
+	}
 	//更新
 	void Update();
 	//終了処理

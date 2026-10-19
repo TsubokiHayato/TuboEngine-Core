@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <Windows.h>
 #include <XInput.h>
@@ -90,6 +90,15 @@ public:
 	MouseMove GetMouseMove() const;
 	int32_t GetWheel() const;
 	const Vector2& GetMousePosition() const { return mousePosition_; }
+	/// <summary>
+	/// マウス座標の補正（エディタのGameウィンドウ用）。
+	/// クライアント座標 pos を (pos - origin) * scale に変換して GetMousePosition で返す。
+	/// 既定は origin=(0,0), scale=(1,1)＝補正なし。
+	/// </summary>
+	void SetMouseRemap(const Vector2& origin, const Vector2& scale) {
+		mouseRemapOrigin_ = origin;
+		mouseRemapScale_ = scale;
+	}
 
 	// ジョイスティック
 	bool GetJoystickState(int32_t stickNo, DIJOYSTATE2& out) const;
@@ -140,6 +149,9 @@ private:
 	DIMOUSESTATE2 mouse_ = {};
 	DIMOUSESTATE2 mousePre_ = {};
 	Vector2 mousePosition_ = {};
+	// マウス座標補正（Gameウィンドウ表示中に、ゲーム解像度の座標へ変換する）
+	Vector2 mouseRemapOrigin_ = {0.0f, 0.0f};
+	Vector2 mouseRemapScale_ = {1.0f, 1.0f};
 
 	// ウィンドウハンドル
 	HWND hwnd_ = nullptr;

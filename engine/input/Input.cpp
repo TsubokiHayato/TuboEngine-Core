@@ -75,8 +75,9 @@ void TuboEngine::Input::Update() {
 	POINT pt;
 	GetCursorPos(&pt);
 	ScreenToClient(hwnd_, &pt);
-	mousePosition_.x = static_cast<float>(pt.x);
-	mousePosition_.y = static_cast<float>(pt.y);
+	// Gameウィンドウ表示中は、その表示領域基準のゲーム解像度座標へ変換する
+	mousePosition_.x = (static_cast<float>(pt.x) - mouseRemapOrigin_.x) * mouseRemapScale_.x;
+	mousePosition_.y = (static_cast<float>(pt.y) - mouseRemapOrigin_.y) * mouseRemapScale_.y;
 
 	// ジョイスティック接続状態・入力更新
 	for (size_t i = 0; i < devJoysticks_.size(); ++i) {

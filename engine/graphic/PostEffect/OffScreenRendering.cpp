@@ -110,6 +110,27 @@ void OffScreenRendering::Initialize() {
 		}
 	}
 
+#ifdef USE_IMGUI
+	///---------------------------------------------------------------------
+	///         ゲームビュー用テクスチャの生成（Unity 風 Game ウィンドウ用）
+	///---------------------------------------------------------------------
+	{
+		auto dx = TuboEngine::DirectXCommon::GetInstance();
+		int32_t w = TuboEngine::WinApp::GetInstance()->GetClientWidth();
+		int32_t h = TuboEngine::WinApp::GetInstance()->GetClientHeight();
+		gameViewTexture_ = CreateRenderTargetResource(device, w, h, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, kRenderTargetClearValue);
+		gameViewTexture_->SetName(L"GameViewTexture");
+		gameViewState_ = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+		gameViewRtvHeap_ = dx->CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 1, false);
+		gameViewRtvHandle_ = gameViewRtvHeap_->GetCPUDescriptorHandleForHeapStart();
+		device->CreateRenderTargetView(gameViewTexture_.Get(), nullptr, gameViewRtvHandle_);
+
+		// SRV は ImGui 側のヒープに作る（ImGui::Image で参照するため）
+		TuboEngine::ImGuiManager::GetInstance()->SetGameViewTexture(gameViewTexture_.Get());
+	}
+#endif // USE_IMGUI
+
 	// Dash用: effectNames の並びに合わせて RadialBlur の index は 8
 	// （OffScreenRendering::DrawImGui の配列と揃えておく）
 	dashEffectIndex_ = 8;
@@ -321,14 +342,27 @@ void OffScreenRendering::Draw() {
 	int writeBuf = 0; // 書込先 ppTexture_ の番号
 	int prevBuf = -1; // 直前に読んでいたbuffer (-1=シーン)
 
+	// デバッグ時の Unity 風レイアウトでは、最終結果をバックバッファではなく
+	// ゲームビュー用テクスチャへ描き、ImGui の Game ウィンドウ内に表示する
+	bool toGameView = false;
+#ifdef USE_IMGUI
+	toGameView = gameViewTexture_ && TuboEngine::ImGuiManager::GetInstance()->IsGameViewActive();
+#endif // USE_IMGUI
+	const uint32_t backBufferIndex = dxCommon->GetSwapChain()->GetCurrentBackBufferIndex();
+	const D3D12_CPU_DESCRIPTOR_HANDLE backBufferRtv = dxCommon->GetRTVCPUDescriptorHandle(backBufferIndex);
+
 	for (size_t i = 0; i < order.size(); ++i) {
 		bool isLast = (i + 1 == order.size());
 
-		// 出力先RTV：最後だけバックバッファ、それ以外は中間テクスチャ
+		// 出力先RTV：最後だけバックバッファ(またはゲームビュー)、それ以外は中間テクスチャ
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv;
 		if (isLast) {
-			uint32_t backBufferIndex = dxCommon->GetSwapChain()->GetCurrentBackBufferIndex();
-			rtv = dxCommon->GetRTVCPUDescriptorHandle(backBufferIndex);
+			if (toGameView) {
+				Transition(gameViewTexture_.Get(), gameViewState_, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				rtv = gameViewRtvHandle_;
+			} else {
+				rtv = backBufferRtv;
+			}
 		} else {
 			// 書込先をレンダーターゲット状態へ
 			Transition(ppTexture_[writeBuf].Get(), ppState_[writeBuf], D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -353,6 +387,17 @@ void OffScreenRendering::Draw() {
 			writeBuf = nextWrite;
 		}
 	}
+
+#ifdef USE_IMGUI
+	if (gameViewTexture_) {
+		// ImGui から読めるよう常に SRV 状態にしておく（Game ウィンドウ表示中でなくても状態を揃える）
+		Transition(gameViewTexture_.Get(), gameViewState_, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
+	if (toGameView) {
+		// 以降の ImGui 描画はバックバッファへ
+		commandList->OMSetRenderTargets(1, &backBufferRtv, FALSE, nullptr);
+	}
+#endif // USE_IMGUI
 }
 
 void OffScreenRendering::DrawImGui() {

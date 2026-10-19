@@ -282,6 +282,9 @@
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp">
       <Filter>projects\engine\base\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\imgui\EditorPanels.cpp">
+      <Filter>projects\engine\imgui</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\imgui\ImGuiManager.cpp">
       <Filter>projects\engine\imgui</Filter>
     </ClCompile>
@@ -646,6 +649,9 @@
     </ClInclude>
     <ClInclude Include="..\engine\base\Common\WinApp.h">
       <Filter>projects\engine\base\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\imgui\EditorPanels.h">
+      <Filter>projects\engine\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\imgui\ImGuiManager.h">
       <Filter>projects\engine\imgui</Filter>

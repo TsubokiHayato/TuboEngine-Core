@@ -80,8 +80,14 @@ void TuboEngine::Framework::Update() {
 	// 入力の更新
 	TuboEngine::Input::GetInstance()->Update();
 
-	// シーンマネージャーの更新
-	SceneManager::GetInstance()->Update();
+	// シーンマネージャーの更新（デバッグ時はツールバーの一時停止/コマ送りに従う）
+	bool updateScene = true;
+#ifdef USE_IMGUI
+	updateScene = TuboEngine::ImGuiManager::GetInstance()->ConsumeSceneUpdate();
+#endif // USE_IMGUI
+	if (updateScene) {
+		SceneManager::GetInstance()->Update();
+	}
 
 	TuboEngine::Camera* mainCamera = SceneManager::GetInstance()->GetMainCamera();
 
