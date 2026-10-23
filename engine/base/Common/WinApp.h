@@ -63,8 +63,8 @@ public:
 	/// カーソルの固定方法。
 	/// </summary>
 	enum class CursorMode {
-		Free,     // 固定しない（タイトル・メニュー向け）
-		Confined, // ウィンドウ（Debug では Game ウィンドウ）内に閉じ込める ※既定
+		Free,     // 固定しない ※既定
+		Confined, // ウィンドウ（Debug では Game ウィンドウ）内に閉じ込める
 		Locked,   // 中央に固定して非表示（視点操作向け。移動量は Input::GetMouseMove で取る）
 	};
 
@@ -125,7 +125,7 @@ private:
 	// カーソルの表示/非表示を切り替える（ShowCursor は回数カウント式なので、状態が変わる時だけ呼ぶ）
 	void SetCursorVisible(bool visible);
 
-	CursorMode cursorMode_ = CursorMode::Confined;
+	CursorMode cursorMode_ = CursorMode::Free; // 既定は固定しない（固定したいシーンで SetCursorMode する）
 	bool cursorCaptured_ = true;
 	bool cursorHidden_ = false;
 };
