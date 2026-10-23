@@ -186,6 +186,7 @@
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animation.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\KeyframeClip.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\AnimatorController.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Skeleton.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\SkinCluster.cpp" />
@@ -205,6 +206,8 @@
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp" />
     <ClCompile Include="..\engine\base\Utilities\JsonManager.cpp" />
     <ClCompile Include="..\engine\imgui\EditorPanels.cpp" />
+    <ClCompile Include="..\engine\imgui\EditorTimeline.cpp" />
+    <ClCompile Include="..\engine\imgui\EditorObjects.cpp" />
     <ClCompile Include="..\engine\imgui\ImGuiManager.cpp" />
     <ClCompile Include="..\engine\scene\IScene.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\GaussianBlurEffect\GaussianBlurEffect.cpp" />
@@ -286,6 +289,7 @@
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.h" />
     <ClInclude Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.h" />
     <ClInclude Include="..\engine\graphic\Animation\Animator.h" />
+    <ClInclude Include="..\engine\graphic\Animation\KeyframeClip.h" />
     <ClInclude Include="..\engine\graphic\Animation\AnimatorController.h" />
     <ClInclude Include="..\engine\Collider\Collider.h" />
     <ClInclude Include="..\engine\Collider\CollisionManager.h" />
@@ -330,6 +334,8 @@
     <ClInclude Include="..\engine\graphic\data\VertexData.h" />
     <ClInclude Include="..\engine\base\Common\WinApp.h" />
     <ClInclude Include="..\engine\imgui\EditorPanels.h" />
+    <ClInclude Include="..\engine\imgui\EditorTimeline.h" />
+    <ClInclude Include="..\engine\imgui\EditorObjects.h" />
     <ClInclude Include="..\engine\imgui\ImGuiManager.h" />
     <ClInclude Include="..\engine\scene\IScene.h" />
     <ClInclude Include="..\engine\graphic\Particle\Particle.h" />

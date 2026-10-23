@@ -234,6 +234,9 @@
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\graphic\Animation\KeyframeClip.cpp">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\graphic\Animation\AnimatorController.cpp">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClCompile>
@@ -289,6 +292,12 @@
       <Filter>projects\engine\base\Utilities</Filter>
     </ClCompile>
     <ClCompile Include="..\engine\imgui\EditorPanels.cpp">
+      <Filter>projects\engine\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\imgui\EditorTimeline.cpp">
+      <Filter>projects\engine\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\engine\imgui\EditorObjects.cpp">
       <Filter>projects\engine\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\engine\imgui\ImGuiManager.cpp">
@@ -545,6 +554,9 @@
     <ClInclude Include="..\engine\graphic\Animation\Animator.h">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClInclude>
+    <ClInclude Include="..\engine\graphic\Animation\KeyframeClip.h">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClInclude>
     <ClInclude Include="..\engine\graphic\Animation\AnimatorController.h">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClInclude>
@@ -675,6 +687,12 @@
       <Filter>projects\engine\base\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\imgui\EditorPanels.h">
+      <Filter>projects\engine\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\imgui\EditorTimeline.h">
+      <Filter>projects\engine\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\imgui\EditorObjects.h">
       <Filter>projects\engine\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\imgui\ImGuiManager.h">

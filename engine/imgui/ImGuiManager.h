@@ -150,6 +150,12 @@ private:
 	/// セッション中に初めて見つけた時だけ Inspector と同じ領域へドッキングする。
 	/// </summary>
 	void AutoDockFloatingWindows();
+
+	/// <summary>
+	/// シーンの ImGuiDraw が終わった後に描くエディタ部分（Hierarchy / Inspector / Timeline / Gizmo）。
+	/// オブジェクトの登録（Editor::Inspect）が揃ってから描く必要があるので End() から呼ぶ。
+	/// </summary>
+	void DrawLateEditorWindows();
 #endif // USE_IMGUI
 
 private:
@@ -164,6 +170,9 @@ private:
 	// Game ウィンドウでゲーム画面を表示した範囲（クライアント座標）と、表示できたか
 	RECT gameViewRect_ = {};
 	bool gameViewRectValid_ = false;
+	// 同じ範囲のスクリーン座標（Gizmo の描画用）
+	float gameImageMin_[2] = {};
+	float gameImageMax_[2] = {};
 	// 起動時に保存済みレイアウトを確認したか
 	bool layoutChecked_ = false;
 	// 一時停止中か / コマ送り要求
@@ -174,6 +183,9 @@ private:
 	bool showInspector_ = true;
 	bool showProject_ = true;
 	bool showConsole_ = true;
+	bool showTimeline_ = true;
+	// Hierarchy で選択中のオブジェクト名（Editor::Inspect で登録された物）
+	std::string selectedObject_;
 	// Hierarchy で選択中のウィンドウ名 / 前面に出す予定のウィンドウ名
 	std::string selectedWindow_;
 	std::string focusRequest_;

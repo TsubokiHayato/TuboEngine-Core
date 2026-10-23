@@ -8,6 +8,8 @@
 #endif // USE_IMGUI
 #include "Input.h"
 #include "EditorPanels.h"
+#include "EditorObjects.h"
+#include "EditorTimeline.h"
 
 #include <algorithm>
 #include <cassert>
@@ -158,6 +160,8 @@ void ImGuiManager::Begin() {
 
 	// Game ウィンドウの表示範囲は DrawGameWindow で今フレーム分を設定し直す
 	gameViewRectValid_ = false;
+	// シーンが ImGuiDraw で登録するオブジェクトを、毎フレーム登録し直す
+	Editor::BeginFrame();
 
 #ifdef IMGUI_HAS_DOCK
 	// ショートカット（Unity 準拠）。テキスト入力中は無効。
@@ -190,6 +194,7 @@ void ImGuiManager::Begin() {
 			ImGui::MenuItem("Inspector", nullptr, &showInspector_);
 			ImGui::MenuItem("Project", nullptr, &showProject_);
 			ImGui::MenuItem("Console", nullptr, &showConsole_);
+			ImGui::MenuItem("Timeline", nullptr, &showTimeline_);
 			ImGui::Separator();
 			ImGui::TextDisabled("個別パネル:");
 			if (panelOpen_.empty()) {
@@ -260,12 +265,7 @@ void ImGuiManager::Begin() {
 		// ゲーム画面は Game ウィンドウ内に描くので、中央も通常のドック領域にする
 		ImGui::DockSpaceOverViewport(dockspaceId, ImGui::GetMainViewport());
 		DrawGameWindow();
-		if (showHierarchy_) {
-			DrawHierarchyWindow();
-		}
-		if (showInspector_) {
-			DrawInspectorWindow();
-		}
+		// Hierarchy / Inspector / Timeline は、シーンがオブジェクトを登録した後（End）で描く
 		if (showProject_) {
 			Editor::DrawProjectWindow(&showProject_);
 		}
@@ -285,6 +285,11 @@ void ImGuiManager::Begin() {
 
 void ImGuiManager::End() {
 #ifdef USE_IMGUI
+#ifdef IMGUI_HAS_DOCK
+	if (IsGameViewActive()) {
+		DrawLateEditorWindows();
+	}
+#endif // IMGUI_HAS_DOCK
 	// ImGuiの受付終了
 	ImGui::Render();
 #endif // USE_IMGUI
@@ -358,7 +363,7 @@ bool ImGuiManager::ConsumeSceneUpdate() {
 #if defined(USE_IMGUI) && defined(IMGUI_HAS_DOCK)
 namespace {
 // エディタ自身のウィンドウ名（Hierarchy への列挙や自動ドッキングの対象外）
-constexpr const char* kEditorWindowNames[] = {"Game", "Hierarchy", "Inspector", "Project", "Console", "Debug##Default"};
+constexpr const char* kEditorWindowNames[] = {"Game", "Hierarchy", "Inspector", "Project", "Console", "Timeline", "Debug##Default"};
 
 // デバッグウィンドウ（シーンや各マネージャが出すウィンドウ）として扱うか
 bool IsDebugWindow(const ImGuiWindow* window) {
@@ -402,6 +407,7 @@ void ImGuiManager::BuildDefaultLayout(ImGuiID dockspaceId) {
 	ImGui::DockBuilderDockWindow("Inspector", rightId);
 	ImGui::DockBuilderDockWindow("Project", bottomId);
 	ImGui::DockBuilderDockWindow("Console", bottomId);
+	ImGui::DockBuilderDockWindow("Timeline", bottomId);
 	// 既に存在するデバッグウィンドウは Inspector の隣(タブ)へまとめる
 	for (ImGuiWindow* window : GImGui->Windows) {
 		if (IsDebugWindow(window)) {
@@ -534,6 +540,10 @@ void ImGuiManager::DrawGameWindow() {
 		    static_cast<LONG>(imageMin.x - viewportPos.x), static_cast<LONG>(imageMin.y - viewportPos.y),
 		    static_cast<LONG>(imageMax.x - viewportPos.x), static_cast<LONG>(imageMax.y - viewportPos.y)};
 		gameViewRectValid_ = true;
+		gameImageMin_[0] = imageMin.x;
+		gameImageMin_[1] = imageMin.y;
+		gameImageMax_[0] = imageMax.x;
+		gameImageMax_[1] = imageMax.y;
 	}
 	ImGui::End();
 }
@@ -572,6 +582,28 @@ void ImGuiManager::DrawHierarchyWindow() {
 
 	const std::string sceneName = SceneManager::GetInstance()->GetCurrentSceneName();
 	if (ImGui::TreeNodeEx("##scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", sceneName.c_str())) {
+		// シーンが Editor::Inspect で登録したオブジェクト（クリックで Inspector に表示）
+		for (const Editor::EditorObject& object : Editor::GetObjects()) {
+			if (!filter.PassFilter(object.name.c_str())) {
+				continue;
+			}
+			ImGui::PushID(object.name.c_str());
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
+			if (selectedObject_ == object.name) {
+				flags |= ImGuiTreeNodeFlags_Selected;
+			}
+			ImGui::TreeNodeEx("##object", flags, "%s %s", object.is3D ? "[3D]" : "[2D]", object.name.c_str());
+			if (ImGui::IsItemClicked()) {
+				selectedObject_ = object.name;
+				selectedWindow_.clear();
+				focusRequest_ = "Inspector";
+			}
+			ImGui::PopID();
+		}
+		if (Editor::GetObjects().empty()) {
+			ImGui::TextDisabled("(オブジェクト未登録: シーンの ImGuiDraw で Editor::Inspect)");
+		}
+		ImGui::Separator();
 		for (const std::string& name : names) {
 			if (!filter.PassFilter(name.c_str())) {
 				continue;
@@ -607,6 +639,7 @@ void ImGuiManager::DrawHierarchyWindow() {
 			// クリックで選択 → そのウィンドウを(非表示なら表示して)前面へ
 			if (ImGui::IsItemClicked()) {
 				selectedWindow_ = name;
+				selectedObject_.clear();
 				if (open) {
 					*open = true;
 				}
@@ -629,6 +662,16 @@ void ImGuiManager::DrawInspectorWindow() {
 	if (!ImGui::Begin("Inspector", &showInspector_)) {
 		ImGui::End();
 		return;
+	}
+
+	// Hierarchy でオブジェクトを選んでいれば、その位置・回転・拡縮・色などを編集する
+	if (!selectedObject_.empty()) {
+		if (Editor::EditorObject* object = Editor::FindObject(selectedObject_)) {
+			Editor::DrawObjectInspector(*object);
+			ImGui::Spacing();
+		} else {
+			ImGui::TextDisabled("'%s' は今のシーンにありません", selectedObject_.c_str());
+		}
 	}
 
 	ImGui::SeparatorText("選択中");
@@ -669,6 +712,31 @@ void ImGuiManager::DrawInspectorWindow() {
 		ImGui::Text("表示倍率: %.0f%%", gameViewDisplayScale_ * 100.0f);
 	}
 	ImGui::End();
+}
+
+void ImGuiManager::DrawLateEditorWindows() {
+	if (showHierarchy_) {
+		DrawHierarchyWindow();
+	}
+	if (showInspector_) {
+		DrawInspectorWindow();
+	}
+
+	Editor::EditorObject* selected = selectedObject_.empty() ? nullptr : Editor::FindObject(selectedObject_);
+	if (showTimeline_) {
+		// 前の版のレイアウト（imgui.ini）には Timeline が無いので、初回だけ Console と同じ場所に入れる
+		if (ImGuiWindow* console = ImGui::FindWindowByName("Console"); console && console->DockId != 0) {
+			ImGui::SetNextWindowDockID(console->DockId, ImGuiCond_FirstUseEver);
+		}
+		Editor::DrawTimelineWindow(&showTimeline_, selected);
+	}
+
+	// 選択中の 3D オブジェクトに移動用の矢印を出す
+	if (selected && gameViewRectValid_) {
+		if (TuboEngine::Camera* camera = SceneManager::GetInstance()->GetMainCamera()) {
+			Editor::DrawGizmo(*selected, *camera, gameImageMin_[0], gameImageMin_[1], gameImageMax_[0], gameImageMax_[1]);
+		}
+	}
 }
 
 void ImGuiManager::AutoDockFloatingWindows() {
