@@ -4,9 +4,11 @@
 #include "Skeleton.h"
 #include "SkinCluster.h"
 #include "GameTime.h"
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace TuboEngine {
 /// <summary>
@@ -115,6 +117,49 @@ public:
 	const Skeleton& GetSkeleton() const { return skeleton_; }
 
 	///-------------------------------------------------------------------------------------------------
+	/// アニメーションイベント（決まった時間に処理を呼ぶ：足音・攻撃判定・エフェクトなど）
+
+	/// <summary>
+	/// 「animationName の time 秒を通過したら callback を呼ぶ」を登録する。
+	/// ループ再生では毎周呼ばれる。逆再生でも通過すれば呼ばれる。クロスフェード中の「前のアニメ」では呼ばれない。
+	/// </summary>
+	/// <param name="eventName">イベント名（SetEventListener に渡される。callback が無くても名前だけで使える）</param>
+	void AddEvent(const std::string& animationName, float time, std::function<void()> callback, const std::string& eventName = "");
+	/// <summary>
+	/// 登録したイベントを消す（animationName を省略すると全部）。
+	/// </summary>
+	void ClearEvents(const std::string& animationName = "");
+	/// <summary>
+	/// 全イベント共通の受け取り口（イベント名で処理を分けたい時・JSON で定義したイベント用）。
+	/// </summary>
+	void SetEventListener(std::function<void(const std::string& animationName, const std::string& eventName)> listener) { eventListener_ = std::move(listener); }
+	/// <summary>
+	/// ループしない再生が最後まで行った時に1回呼ばれる。
+	/// </summary>
+	void SetOnFinished(std::function<void(const std::string& animationName)> callback) { onFinished_ = std::move(callback); }
+	/// <summary>
+	/// 0〜1 の進み具合（再生時間 / 長さ）。
+	/// </summary>
+	float GetNormalizedTime() const { return current_->duration > 0.0f ? animationTime_ / current_->duration : 0.0f; }
+
+	///-------------------------------------------------------------------------------------------------
+	/// ボーン（武器を手に持たせる・エフェクトを足元に出す等）
+
+	/// <summary>
+	/// ジョイントがあるか（名前は Blender のボーン名。Mixamo なら "mixamorig:RightHand" など）。
+	/// </summary>
+	bool HasJoint(const std::string& jointName) const { return skeleton_.jointMap.contains(jointName); }
+	/// <summary>
+	/// ジョイントのワールド行列（キャラクターの位置・回転・拡縮込み）。Update の後に呼ぶ。無ければ単位行列。
+	/// 子オブジェクトの行列に掛ければ「手に持つ」ができる: child.SetLocalMatrix(GetJointWorldMatrix("RightHand"))
+	/// </summary>
+	TuboEngine::Math::Matrix4x4 GetJointWorldMatrix(const std::string& jointName) const;
+	/// <summary>
+	/// ジョイントのワールド座標（エフェクトの発生位置など）。無ければキャラクターの位置。
+	/// </summary>
+	TuboEngine::Math::Vector3 GetJointWorldPosition(const std::string& jointName) const;
+
+	///-------------------------------------------------------------------------------------------------
 	/// トランスフォーム・見た目
 
 	void SetScale(const TuboEngine::Math::Vector3& scale) { object3d_->SetScale(scale); }
@@ -147,6 +192,30 @@ private:
 	/// ループ・クランプを考慮して再生時間を進める
 	/// </summary>
 	float AdvanceTime(float time, float deltaTime, float duration) const;
+
+	/// <summary>
+	/// 再生時間が from → to に進んだ間にあるイベントを呼ぶ（ループの巻き戻りも考慮）。
+	/// </summary>
+	void FireEvents(float from, float to, float rawTo);
+	/// <summary>
+	/// [begin, end] の範囲（逆再生なら [end, begin]）のイベントを呼ぶ。
+	/// </summary>
+	void FireEventsInRange(float begin, float end, bool includeBegin);
+
+	// アニメーションイベント1個分
+	struct AnimationEvent {
+		float time = 0.0f;
+		std::string name;
+		std::function<void()> callback;
+	};
+	// アニメーション名 → イベント
+	std::map<std::string, std::vector<AnimationEvent>> events_;
+	std::function<void(const std::string&, const std::string&)> eventListener_;
+	std::function<void(const std::string&)> onFinished_;
+	// 再生開始直後（0秒のイベントも呼ぶため）
+	bool eventsJustStarted_ = true;
+	// 終了通知を出したか（ループしない再生用）
+	bool finishedNotified_ = false;
 
 	// 登録済みのアニメーション（名前 → データ）
 	std::map<std::string, Animation> animations_;

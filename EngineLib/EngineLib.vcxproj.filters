@@ -234,6 +234,9 @@
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\graphic\Animation\AnimatorController.cpp">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\graphic\Animation\Skeleton.cpp">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClCompile>
@@ -540,6 +543,9 @@
       <Filter>projects\engine\graphic\PSO\PostEffect</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\graphic\Animation\Animator.h">
+      <Filter>projects\engine\graphic\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\graphic\Animation\AnimatorController.h">
       <Filter>projects\engine\graphic\Animation</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\Collider\Collider.h">

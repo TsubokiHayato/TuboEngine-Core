@@ -3,6 +3,9 @@
 #include <assimp/anim.h>       // Assimpのアニメーションデータを使用するために必要
 #include <assimp/scene.h>      // Assimpのシーンデータを使用するために必要
 #include <cassert>
+#include <format>
+#include <map>
+#include "Logger.h"
 
 namespace TuboEngine {
 
@@ -53,28 +56,51 @@ Animation ConvertAnimation(const aiAnimation* animationAssimp) {
 }
 } // namespace
 
-Animation LoadAnimation(const std::string& directoryPath, const std::string& filename, uint32_t animationIndex) {
-	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + filename;
-	const aiScene* scene = importer.ReadFile(filePath, 0); // Assimpを使ってファイルを読み込む
-	assert(scene);
-	if (animationIndex >= scene->mNumAnimations) {
-		return Animation{}; // アニメーションが無い
+namespace {
+// 読み込み済みアニメーション（ファイルパス → ファイル内の全アニメーション）。
+// 同じ glTF を何度も Assimp でパースしないためのキャッシュ。
+std::map<std::string, std::vector<Animation>>& AnimationCache() {
+	static std::map<std::string, std::vector<Animation>> cache;
+	return cache;
+}
+
+// ファイル内の全アニメーションを返す（2回目以降はキャッシュから）。読めなければ空。
+const std::vector<Animation>& LoadAnimationsCached(const std::string& directoryPath, const std::string& filename) {
+	const std::string filePath = directoryPath + "/" + filename;
+	auto& cache = AnimationCache();
+	if (auto it = cache.find(filePath); it != cache.end()) {
+		return it->second;
 	}
-	return ConvertAnimation(scene->mAnimations[animationIndex]);
+
+	std::vector<Animation> animations;
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filePath, 0); // Assimpを使ってファイルを読み込む
+	if (!scene) {
+		// パス間違いなど。落とさずにログを出して「アニメーション無し」として扱う
+		// （失敗結果もキャッシュする＝同じエラーを毎回出さない）
+		Logger::Log(std::format("[Animation] 読み込み失敗: {} ({})\n", filePath, importer.GetErrorString()));
+	} else {
+		for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
+			animations.push_back(ConvertAnimation(scene->mAnimations[i]));
+		}
+	}
+	return cache.emplace(filePath, std::move(animations)).first->second;
+}
+} // namespace
+
+Animation LoadAnimation(const std::string& directoryPath, const std::string& filename, uint32_t animationIndex) {
+	const std::vector<Animation>& animations = LoadAnimationsCached(directoryPath, filename);
+	if (animationIndex >= animations.size()) {
+		return Animation{}; // アニメーションが無い（duration == 0）
+	}
+	return animations[animationIndex];
 }
 
 std::vector<Animation> LoadAnimations(const std::string& directoryPath, const std::string& filename) {
-	std::vector<Animation> animations;
-	Assimp::Importer importer;
-	std::string filePath = directoryPath + "/" + filename;
-	const aiScene* scene = importer.ReadFile(filePath, 0);
-	assert(scene);
-	for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
-		animations.push_back(ConvertAnimation(scene->mAnimations[i]));
-	}
-	return animations;
+	return LoadAnimationsCached(directoryPath, filename);
 }
+
+void ClearAnimationCache() { AnimationCache().clear(); }
 
 std::vector<std::string> GetAnimationNodeNames(const std::string& directoryPath, const std::string& filename) {
 	std::vector<std::string> nodeNames;

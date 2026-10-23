@@ -34,13 +34,18 @@ struct Animation {
 };
 
 /// <summary>
-/// ファイル内の指定番号のアニメーションを読み込む。存在しない場合は空（duration == 0）を返す。
+/// ファイル内の指定番号のアニメーションを読み込む。存在しない・読めない場合は空（duration == 0）を返す（ログが出る）。
 /// </summary>
 Animation LoadAnimation(const std::string& directoryPath, const std::string& filename, uint32_t animationIndex = 0);
 /// <summary>
 /// ファイル内の全アニメーションを読み込む。
 /// </summary>
 std::vector<Animation> LoadAnimations(const std::string& directoryPath, const std::string& filename);
+/// <summary>
+/// 読み込み済みアニメーションのキャッシュを消す（glTF を差し替えて読み直したい時用）。
+/// LoadAnimation / LoadAnimations は同じファイルを2回目以降キャッシュから返す。
+/// </summary>
+void ClearAnimationCache();
 /// <summary>
 /// 先頭アニメーションが対象とするノード名の一覧を取得する。
 /// </summary>

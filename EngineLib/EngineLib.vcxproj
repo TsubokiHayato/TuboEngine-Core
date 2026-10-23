@@ -186,6 +186,7 @@
     <ClCompile Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animation.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Animator.cpp" />
+    <ClCompile Include="..\engine\graphic\Animation\AnimatorController.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\Skeleton.cpp" />
     <ClCompile Include="..\engine\graphic\Animation\SkinCluster.cpp" />
     <ClCompile Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.cpp" />
@@ -285,6 +286,7 @@
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Toon\ToonEffect.h" />
     <ClInclude Include="..\engine\graphic\PSO\PostEffect\DepthBasedOutlinePSO.h" />
     <ClInclude Include="..\engine\graphic\Animation\Animator.h" />
+    <ClInclude Include="..\engine\graphic\Animation\AnimatorController.h" />
     <ClInclude Include="..\engine\Collider\Collider.h" />
     <ClInclude Include="..\engine\Collider\CollisionManager.h" />
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Dissolve\DissolveEffect.h" />

@@ -61,7 +61,17 @@ void TuboEngine::Animator::Update(float deltaTime) {
 	// 再生時間を進める
 	if (isPlaying_) {
 		if (duration > 0.0f) {
+			const float previousTime = animationTime_;
+			const float rawTime = animationTime_ + deltaTime * speed_; // ループで巻き戻す前の時間
 			animationTime_ = AdvanceTime(animationTime_, deltaTime, duration);
+			FireEvents(previousTime, animationTime_, rawTime);
+			// ループしない再生が終端に着いたら1回だけ知らせる
+			if (IsFinished() && !finishedNotified_) {
+				finishedNotified_ = true;
+				if (onFinished_) {
+					onFinished_(currentName_);
+				}
+			}
 		}
 		if (previous_) {
 			if (previous_->duration > 0.0f) {
@@ -118,6 +128,8 @@ bool TuboEngine::Animator::PlayAnimation(const std::string& name, float blendTim
 	current_ = &it->second;
 	currentName_ = name;
 	animationTime_ = speed_ >= 0.0f ? 0.0f : current_->duration;
+	eventsJustStarted_ = true;
+	finishedNotified_ = false;
 	return true;
 }
 
@@ -153,7 +165,9 @@ void TuboEngine::Animator::SetAnimation(const Animation& animation, bool resetTi
 	previous_ = nullptr;
 	if (resetTime) {
 		animationTime_ = speed_ >= 0.0f ? 0.0f : current_->duration;
+		eventsJustStarted_ = true;
 	}
+	finishedNotified_ = false;
 }
 
 void TuboEngine::Animator::LoadAnimation(const std::string& filePath, uint32_t animationIndex) {
@@ -197,4 +211,89 @@ void TuboEngine::Animator::DrawImGui(const char* windowName) {
 	ImGui::NewLine();
 	ImGui::End();
 #endif // USE_IMGUI
+}
+
+void TuboEngine::Animator::AddEvent(const std::string& animationName, float time, std::function<void()> callback, const std::string& eventName) {
+	events_[animationName].push_back(AnimationEvent{time, eventName, std::move(callback)});
+}
+
+void TuboEngine::Animator::ClearEvents(const std::string& animationName) {
+	if (animationName.empty()) {
+		events_.clear();
+	} else {
+		events_.erase(animationName);
+	}
+}
+
+void TuboEngine::Animator::FireEvents(float from, float to, float rawTo) {
+	if (events_.empty()) {
+		return;
+	}
+	const float duration = current_->duration;
+	const std::string name = currentName_;
+	const bool includeBegin = eventsJustStarted_; // 再生開始直後は from ちょうどのイベントも呼ぶ
+	eventsJustStarted_ = false;
+
+	if (speed_ >= 0.0f) {
+		if (isLoop_ && rawTo >= duration) {
+			// 終端を越えて先頭に戻った：残り → 先頭からの分
+			FireEventsInRange(from, duration, includeBegin);
+			if (currentName_ == name) { // イベントの中で別のアニメに切り替えていたら続きは呼ばない
+				FireEventsInRange(0.0f, to, true);
+			}
+		} else {
+			FireEventsInRange(from, to, includeBegin);
+		}
+	} else {
+		if (isLoop_ && rawTo < 0.0f) {
+			// 逆再生で先頭を越えて終端に戻った
+			FireEventsInRange(from, 0.0f, includeBegin);
+			if (currentName_ == name) {
+				FireEventsInRange(duration, to, true);
+			}
+		} else {
+			FireEventsInRange(from, to, includeBegin);
+		}
+	}
+}
+
+void TuboEngine::Animator::FireEventsInRange(float begin, float end, bool includeBegin) {
+	auto it = events_.find(currentName_);
+	if (it == events_.end()) {
+		return;
+	}
+	const bool forward = end >= begin;
+	// コールバックの中で AddEvent / PlayAnimation されても壊れないようコピーして回す
+	const std::vector<AnimationEvent> events = it->second;
+	const std::string animationName = currentName_;
+	for (const AnimationEvent& e : events) {
+		// 順再生は (begin, end]、逆再生は [end, begin)。begin ちょうどは前のフレームで呼んだので含めない
+		// （再生開始直後だけは begin も含める＝0秒のイベントも呼ぶ）
+		const bool afterBegin = forward ? (includeBegin ? e.time >= begin : e.time > begin) : (includeBegin ? e.time <= begin : e.time < begin);
+		const bool beforeEnd = forward ? e.time <= end : e.time >= end;
+		if (!afterBegin || !beforeEnd) {
+			continue;
+		}
+		if (e.callback) {
+			e.callback();
+		}
+		if (eventListener_) {
+			eventListener_(animationName, e.name);
+		}
+	}
+}
+
+TuboEngine::Math::Matrix4x4 TuboEngine::Animator::GetJointWorldMatrix(const std::string& jointName) const {
+	// Object3d と同じ計算: ワールド行列 = (スケルトン空間の行列) × (キャラクターの SRT)
+	const TuboEngine::Math::Matrix4x4 world = TuboEngine::Math::MakeAffineMatrix(object3d_->GetScale(), object3d_->GetRotation(), object3d_->GetPosition());
+	auto it = skeleton_.jointMap.find(jointName);
+	if (it == skeleton_.jointMap.end()) {
+		return world;
+	}
+	return skeleton_.joints[it->second].skeletonSpaceMatrix * world;
+}
+
+TuboEngine::Math::Vector3 TuboEngine::Animator::GetJointWorldPosition(const std::string& jointName) const {
+	const TuboEngine::Math::Matrix4x4 m = GetJointWorldMatrix(jointName);
+	return {m.m[3][0], m.m[3][1], m.m[3][2]};
 }
