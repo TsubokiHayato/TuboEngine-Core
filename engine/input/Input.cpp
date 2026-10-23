@@ -1,6 +1,7 @@
 #include "Input.h"
 #include "ImGuiManager.h"
 #include <cassert>
+#include <cwchar>
 
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -92,7 +93,8 @@ void TuboEngine::Input::Update() {
 				joystick.isConnected_ = false;
 			}
 		} else if (joystick.type_ == PadType::XInput) {
-			DWORD result = XInputGetState(static_cast<DWORD>(i), &joystick.state_.xInput_);
+			// devJoysticks_ の番号ではなく、XInput のコントローラー番号(0〜3)で取得する
+			DWORD result = XInputGetState(static_cast<DWORD>(joystick.xinputIndex_), &joystick.state_.xInput_);
 			joystick.isConnected_ = (result == ERROR_SUCCESS);
 		}
 	}
@@ -230,12 +232,18 @@ int32_t TuboEngine::Input::GetWheel() const { return static_cast<int32_t>(mouse_
 bool TuboEngine::Input::GetJoystickState(int32_t stickNo, DIJOYSTATE2& out) const {
 	if (stickNo < 0 || stickNo >= static_cast<int32_t>(devJoysticks_.size()))
 		return false;
+	// 種類が違うパッドの共用体を読むと値がでたらめになるので、種類が合う時だけ返す
+	if (devJoysticks_[stickNo].type_ != PadType::DirectInput)
+		return false;
 	out = devJoysticks_[stickNo].state_.directInput_;
 	return true;
 }
 
 bool TuboEngine::Input::GetJoystickStatePrevious(int32_t stickNo, DIJOYSTATE2& out) const {
 	if (stickNo < 0 || stickNo >= static_cast<int32_t>(devJoysticks_.size()))
+		return false;
+	// 種類が違うパッドの共用体を読むと値がでたらめになるので、種類が合う時だけ返す
+	if (devJoysticks_[stickNo].type_ != PadType::DirectInput)
 		return false;
 	out = devJoysticks_[stickNo].statePre_.directInput_;
 	return true;
@@ -244,12 +252,18 @@ bool TuboEngine::Input::GetJoystickStatePrevious(int32_t stickNo, DIJOYSTATE2& o
 bool TuboEngine::Input::GetJoystickState(int32_t stickNo, XINPUT_STATE& out) const {
 	if (stickNo < 0 || stickNo >= static_cast<int32_t>(devJoysticks_.size()))
 		return false;
+	// 種類が違うパッドの共用体を読むと値がでたらめになるので、種類が合う時だけ返す
+	if (devJoysticks_[stickNo].type_ != PadType::XInput)
+		return false;
 	out = devJoysticks_[stickNo].state_.xInput_;
 	return true;
 }
 
 bool TuboEngine::Input::GetJoystickStatePrevious(int32_t stickNo, XINPUT_STATE& out) const {
 	if (stickNo < 0 || stickNo >= static_cast<int32_t>(devJoysticks_.size()))
+		return false;
+	// 種類が違うパッドの共用体を読むと値がでたらめになるので、種類が合う時だけ返す
+	if (devJoysticks_[stickNo].type_ != PadType::XInput)
 		return false;
 	out = devJoysticks_[stickNo].statePre_.xInput_;
 	return true;
@@ -279,6 +293,16 @@ BOOL CALLBACK TuboEngine::Input::EnumJoysticksCallback(const DIDEVICEINSTANCE* p
 	if (FAILED(hr))
 		return DIENUM_CONTINUE;
 
+	// XInput 対応パッド（デバイスパスに "IG_" を含む）は XInput 側で扱うので、
+	// DirectInput としては登録しない（同じパッドが2回登録されるのを防ぐ）
+	DIPROPGUIDANDPATH guidAndPath{};
+	guidAndPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+	guidAndPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+	guidAndPath.diph.dwObj = 0;
+	guidAndPath.diph.dwHow = DIPH_DEVICE;
+	if (SUCCEEDED(device->GetProperty(DIPROP_GUIDANDPATH, &guidAndPath.diph)) && std::wcsstr(guidAndPath.wszPath, L"IG_") != nullptr)
+		return DIENUM_CONTINUE;
+
 	hr = device->SetDataFormat(&c_dfDIJoystick2);
 	if (FAILED(hr))
 		return DIENUM_CONTINUE;
@@ -297,9 +321,7 @@ BOOL CALLBACK TuboEngine::Input::EnumJoysticksCallback(const DIDEVICEINSTANCE* p
 
 void TuboEngine::Input::SetupJoysticks() {
 	devJoysticks_.clear();
-	if (dInput_) {
-		dInput_->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumJoysticksCallback, this, DIEDFL_ATTACHEDONLY);
-	}
+	// XInput パッドを先に登録する（0番が XInput パッドになるように）
 	// XInputパッドの重複追加を防ぐ
 	for (DWORD i = 0; i < 4; ++i) {
 		XINPUT_STATE xstate = {};
@@ -321,5 +343,9 @@ void TuboEngine::Input::SetupJoysticks() {
 			joystick.xinputIndex_ = static_cast<int32_t>(i);
 			devJoysticks_.push_back(joystick);
 		}
+	}
+	// XInput 非対応の DirectInput パッドはその後ろに並べる
+	if (dInput_) {
+		dInput_->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumJoysticksCallback, this, DIEDFL_ATTACHEDONLY);
 	}
 }

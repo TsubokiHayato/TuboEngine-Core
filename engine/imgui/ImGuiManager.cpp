@@ -156,6 +156,9 @@ void ImGuiManager::Begin() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
+	// Game ウィンドウの表示範囲は DrawGameWindow で今フレーム分を設定し直す
+	gameViewRectValid_ = false;
+
 #ifdef IMGUI_HAS_DOCK
 	// ショートカット（Unity 準拠）。テキスト入力中は無効。
 	if (!ImGui::GetIO().WantTextInput) {
@@ -203,6 +206,24 @@ void ImGuiManager::Begin() {
 			ImGui::MenuItem("Game ウィンドウに表示 (Unity風)", "F1", &gameViewEnabled_);
 			if (ImGui::MenuItem("レイアウトをリセット")) {
 				resetLayoutRequested_ = true;
+			}
+			ImGui::Separator();
+			// マウスカーソルの固定方法（Esc で一時解除、Game 画面クリックで再固定）
+			if (ImGui::BeginMenu("マウスカーソル")) {
+				TuboEngine::WinApp* winApp = TuboEngine::WinApp::GetInstance();
+				const TuboEngine::WinApp::CursorMode mode = winApp->GetCursorMode();
+				if (ImGui::MenuItem("固定しない (Free)", nullptr, mode == TuboEngine::WinApp::CursorMode::Free)) {
+					winApp->SetCursorMode(TuboEngine::WinApp::CursorMode::Free);
+				}
+				if (ImGui::MenuItem("ウィンドウ内に固定 (Confined)", nullptr, mode == TuboEngine::WinApp::CursorMode::Confined)) {
+					winApp->SetCursorMode(TuboEngine::WinApp::CursorMode::Confined);
+				}
+				if (ImGui::MenuItem("中央に固定・非表示 (Locked)", nullptr, mode == TuboEngine::WinApp::CursorMode::Locked)) {
+					winApp->SetCursorMode(TuboEngine::WinApp::CursorMode::Locked);
+				}
+				ImGui::Separator();
+				ImGui::TextDisabled("Esc: 一時解除 / Game 画面クリック: 再固定");
+				ImGui::EndMenu();
 			}
 			ImGui::EndMenu();
 		}
@@ -312,6 +333,14 @@ bool ImGuiManager::IsGameViewActive() const {
 #else
 	return false;
 #endif
+}
+
+bool ImGuiManager::GetGameViewRect(RECT& outRect) const {
+	if (!IsGameViewActive() || !gameViewRectValid_) {
+		return false;
+	}
+	outRect = gameViewRect_;
+	return true;
 }
 
 bool ImGuiManager::ConsumeSceneUpdate() {
@@ -500,6 +529,11 @@ void ImGuiManager::DrawGameWindow() {
 	if (size.x > 0.0f && size.y > 0.0f) {
 		const ImVec2 viewportPos = ImGui::GetMainViewport()->Pos;
 		input->SetMouseRemap({imageMin.x - viewportPos.x, imageMin.y - viewportPos.y}, {texW / size.x, texH / size.y});
+		// マウスカーソルを閉じ込める範囲として覚えておく（クライアント座標）
+		gameViewRect_ = {
+		    static_cast<LONG>(imageMin.x - viewportPos.x), static_cast<LONG>(imageMin.y - viewportPos.y),
+		    static_cast<LONG>(imageMax.x - viewportPos.x), static_cast<LONG>(imageMax.y - viewportPos.y)};
+		gameViewRectValid_ = true;
 	}
 	ImGui::End();
 }
@@ -623,6 +657,10 @@ void ImGuiManager::DrawInspectorWindow() {
 	ImGui::Text("状態: %s", paused_ ? "一時停止中" : "再生中");
 	const ImGuiIO& io = ImGui::GetIO();
 	ImGui::Text("FPS: %.1f  (%.2f ms)", io.Framerate, io.Framerate > 0.0f ? 1000.0f / io.Framerate : 0.0f);
+
+	const TuboEngine::WinApp* winApp = TuboEngine::WinApp::GetInstance();
+	static const char* kCursorModeNames[] = {"Free", "Confined", "Locked"};
+	ImGui::Text("マウス: %s%s", kCursorModeNames[static_cast<int>(winApp->GetCursorMode())], winApp->IsCursorCaptured() ? "" : " (一時解除中)");
 
 	ImGui::SeparatorText("Game ビュー");
 	if (gameViewTexture_) {

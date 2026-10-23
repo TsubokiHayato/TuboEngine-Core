@@ -3,6 +3,7 @@
 #include "Object3d.h"
 #include "Skeleton.h"
 #include "SkinCluster.h"
+#include "GameTime.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -28,8 +29,8 @@ public:
 	/// <summary>
 	/// 更新処理（アニメーションを進めて行列を更新する）
 	/// </summary>
-	/// <param name="deltaTime">経過時間（秒）</param>
-	void Update(float deltaTime = 1.0f / 60.0f);
+	/// <param name="deltaTime">経過時間（秒）。省略時は Time::DeltaTime()（一時停止中は 0）</param>
+	void Update(float deltaTime = TuboEngine::Time::DeltaTime());
 
 	/// <summary>
 	/// 描画処理

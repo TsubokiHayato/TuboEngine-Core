@@ -102,6 +102,12 @@ public:
 	bool IsGameViewActive() const;
 
 	/// <summary>
+	/// 前フレームに Game ウィンドウでゲーム画面を表示した範囲（クライアント座標）。
+	/// Game ウィンドウが表示されていなければ false。マウスカーソルの固定範囲に使う。
+	/// </summary>
+	bool GetGameViewRect(RECT& outRect) const;
+
+	/// <summary>
 	/// このフレームでシーンを更新してよいか（ツールバーの一時停止/コマ送り用）。
 	/// 一時停止中は false、コマ送り要求があった時だけ1回 true を返す。Framework::Update から呼ぶ。
 	/// </summary>
@@ -155,6 +161,9 @@ private:
 	ID3D12Resource* gameViewTexture_ = nullptr;
 	// Game ウィンドウでの表示倍率（Inspector 表示用）
 	float gameViewDisplayScale_ = 1.0f;
+	// Game ウィンドウでゲーム画面を表示した範囲（クライアント座標）と、表示できたか
+	RECT gameViewRect_ = {};
+	bool gameViewRectValid_ = false;
 	// 起動時に保存済みレイアウトを確認したか
 	bool layoutChecked_ = false;
 	// 一時停止中か / コマ送り要求

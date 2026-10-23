@@ -319,6 +319,9 @@
     <ClInclude Include="..\engine\math\Vector2.h" />
     <ClInclude Include="..\engine\math\Vector3.h" />
     <ClInclude Include="..\engine\math\Vector4.h" />
+    <ClInclude Include="..\engine\math\Easing.h" />
+    <ClInclude Include="..\engine\math\Tween.h" />
+    <ClInclude Include="..\engine\base\Utilities\GameTime.h" />
     <ClInclude Include="..\engine\graphic\data\VertexData.h" />
     <ClInclude Include="..\engine\base\Common\WinApp.h" />
     <ClInclude Include="..\engine\imgui\EditorPanels.h" />

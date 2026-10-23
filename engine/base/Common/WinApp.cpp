@@ -82,15 +82,49 @@ void WinApp::Initialize()
 
 bool WinApp::ProcessMessage()
 {
+	// 溜まっているメッセージを全て処理する（1フレーム1個だと、溜まった時に操作が重くなる）
 	MSG msg{};
-	if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+		if (msg.message == WM_QUIT) {
+			return true;
+		}
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-	if (msg.message == WM_QUIT) {
-		return true;
-	}
 	return false;
+}
+
+void WinApp::UpdateCursor(bool active, const RECT& clientArea) {
+	const bool apply = active && cursorCaptured_ && cursorMode_ != CursorMode::Free && clientArea.right > clientArea.left && clientArea.bottom > clientArea.top;
+	if (!apply) {
+		::ClipCursor(nullptr);
+		SetCursorVisible(true);
+		return;
+	}
+
+	// クライアント座標 → スクリーン座標
+	POINT topLeft = {clientArea.left, clientArea.top};
+	POINT bottomRight = {clientArea.right, clientArea.bottom};
+	::ClientToScreen(hwnd, &topLeft);
+	::ClientToScreen(hwnd, &bottomRight);
+	RECT clipRect = {topLeft.x, topLeft.y, bottomRight.x, bottomRight.y};
+	::ClipCursor(&clipRect);
+
+	if (cursorMode_ == CursorMode::Locked) {
+		SetCursorVisible(false);
+		::SetCursorPos((clipRect.left + clipRect.right) / 2, (clipRect.top + clipRect.bottom) / 2);
+	} else {
+		SetCursorVisible(true);
+	}
+}
+
+void WinApp::SetCursorVisible(bool visible) {
+	const bool hidden = !visible;
+	if (cursorHidden_ == hidden) {
+		return;
+	}
+	cursorHidden_ = hidden;
+	::ShowCursor(visible ? TRUE : FALSE);
 }
 
 void WinApp::ToggleCursorClip(bool clip) {

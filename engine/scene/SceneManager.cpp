@@ -22,29 +22,32 @@ void SceneManager::Initialize(int startSceneNo) {
 }
 
 void SceneManager::Update() {
-	//現在のシーンがnullptrでない場合
-	if (currentScene == nullptr) {
-		return;
-	}
-
 	// ChangeScene による遷移リクエストがあれば、ここで切り替える。
 	//   requestedSceneNo_ >= 0 : 別シーンへ遷移
 	//   forceReload_           : 同じシーンを作り直す
+	// ※ 現在のシーンが無い（開始シーンが未登録だった）場合も遷移できるよう、null チェックより先に処理する
 	if (requestedSceneNo_ >= 0 || forceReload_) {
-		//現在のシーンを後始末
-		currentScene->Finalize();
-
 		// 別シーンへの遷移なら番号を更新（リロードは番号据え置き）
-		if (requestedSceneNo_ >= 0) {
-			currentSceneNo = requestedSceneNo_;
-		}
+		const int nextSceneNo = (requestedSceneNo_ >= 0) ? requestedSceneNo_ : currentSceneNo;
 		requestedSceneNo_ = -1;
 		forceReload_ = false;
 
-		//登録テーブルから新しいシーンを生成
-		currentScene = CreateScene(currentSceneNo);
-		if (currentScene) {
-			currentScene->Initialize();
+		auto it = factories_.find(nextSceneNo);
+		if (it != factories_.end() && it->second) {
+			//現在のシーンを後始末
+			if (currentScene) {
+				currentScene->Finalize();
+			}
+			//登録テーブルから新しいシーンを生成
+			currentSceneNo = nextSceneNo;
+			currentScene = it->second();
+			if (currentScene) {
+				currentScene->Initialize();
+			}
+		} else {
+			// 未登録の番号なら今のシーンのまま続ける（黒画面で止まらないように）。
+			// CreateScene がログを出し、Debug では assert で知らせる
+			CreateScene(nextSceneNo);
 		}
 	}
 	//現在のシーンがnullptrでない場合

@@ -8,9 +8,8 @@
 #include"ModelManager.h"
 #include <SrvManager.h>
 #include"AudioCommon.h"
-#ifdef _DEBUG
+// ImGuiManager.h は中で USE_IMGUI を見て ImGui を include するので、常に include してよい
 #include"ImGuiManager.h"
-#endif // DEBUG
 #include"SceneManager.h"
 #include"ParticleCommon.h"
 #include"SkyBoxCommon.h"
@@ -18,6 +17,7 @@
 #include"OffScreenRendering.h"
 #include"LineManager.h"
 #include "ParticleManager.h"
+#include "GameTime.h"
 
 class OffScreenRenderingPSO;
 
@@ -132,6 +132,16 @@ protected:
 
 	int objectBlendModeNum = 1; // オブジェクトのブレンドモード
 	int spriteBlendModeNum = 1; // スプライトのブレンドモード
+
+private:
+	/// <summary>
+	/// マウスカーソルの固定・解除（WinApp::CursorMode に従う）。Update から毎フレーム呼ぶ。
+	/// Debug では Esc で一時解除、ゲーム画面のクリックで再固定、Game ウィンドウ表示中はその範囲に閉じ込める。
+	/// </summary>
+	void UpdateCursorLock();
+
+	// 前フレームに Game ウィンドウ表示だったか（切り替わった瞬間を検出する）
+	bool cursorGameViewPrev_ = false;
 
 	// 基盤システム
 };

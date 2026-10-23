@@ -69,22 +69,19 @@ void TuboEngine::Framework::Update() {
 		endRequest = true;
 	}
 
-	// マウスカーソルの制限（ウィンドウがアクティブな時のみ）
-	bool isForeground = (GetForegroundWindow() == TuboEngine::WinApp::GetInstance()->GetHWND());
-	bool wantCaptureMouse = false;
-#ifdef USE_IMGUI
-	wantCaptureMouse = ImGui::GetIO().WantCaptureMouse;
-#endif
-	// ウィンドウが前面にあり、かつ ImGui 操作中でない場合にのみ閉じ込める
-	TuboEngine::WinApp::GetInstance()->ToggleCursorClip(isForeground && !wantCaptureMouse);
 	// 入力の更新
 	TuboEngine::Input::GetInstance()->Update();
+
+	// マウスカーソルの固定（入力の後に行う：Esc / クリックでの切り替えを今フレームの入力で判定するため）
+	UpdateCursorLock();
 
 	// シーンマネージャーの更新（デバッグ時はツールバーの一時停止/コマ送りに従う）
 	bool updateScene = true;
 #ifdef USE_IMGUI
 	updateScene = TuboEngine::ImGuiManager::GetInstance()->ConsumeSceneUpdate();
 #endif // USE_IMGUI
+	// 経過時間の計測（一時停止中は DeltaTime が 0 になる）
+	TuboEngine::Time::Update(updateScene);
 	if (updateScene) {
 		SceneManager::GetInstance()->Update();
 	}
@@ -103,6 +100,11 @@ void TuboEngine::Framework::Update() {
 	LineManager::GetInstance()->Update();
 }
 void TuboEngine::Framework::Finalize() {
+	// シーンを最初に終了する。シーンの Finalize / デストラクタは Input・TextureManager・
+	// ParticleManager などを使うことがあるので、それらより先に片付ける
+	// （後にすると解放済みのものを触る / GetInstance() で作り直されてリークする）
+	SceneManager::GetInstance()->Finalize();
+
 #ifdef USE_IMGUI
 	TuboEngine::ImGuiManager::GetInstance()->Finalize();
 #endif // USE_IMGUI
@@ -121,7 +123,6 @@ void TuboEngine::Framework::Finalize() {
 
 	OffScreenRendering::GetInstance()->Finalize();
 	TuboEngine::SrvManager::GetInstance()->Finalize();
-	SceneManager::GetInstance()->Finalize();
 
 	ParticleCommon::GetInstance()->Finalize();
 	SpriteCommon::GetInstance()->Finalize();
@@ -133,6 +134,56 @@ void TuboEngine::Framework::Finalize() {
 	AudioCommon::GetInstance()->Finalize();
 	TuboEngine::DirectXCommon::GetInstance()->Finalize();
 	TuboEngine::WinApp::GetInstance()->Finalize();
+}
+
+void TuboEngine::Framework::UpdateCursorLock() {
+	TuboEngine::WinApp* winApp = TuboEngine::WinApp::GetInstance();
+	const HWND hwnd = winApp->GetHWND();
+	bool active = (GetForegroundWindow() == hwnd);
+	// 閉じ込める範囲（クライアント座標）。既定はウィンドウ全体
+	RECT area{};
+	::GetClientRect(hwnd, &area);
+
+#ifdef USE_IMGUI
+	TuboEngine::Input* input = TuboEngine::Input::GetInstance();
+	TuboEngine::ImGuiManager* gui = TuboEngine::ImGuiManager::GetInstance();
+	const ImGuiIO& io = ImGui::GetIO();
+	const bool gameView = gui->IsGameViewActive();
+
+	// Game ウィンドウ表示に切り替わった直後は、エディタを触れるよう固定を外しておく
+	if (gameView && !cursorGameViewPrev_) {
+		winApp->SetCursorCaptured(false);
+	}
+	cursorGameViewPrev_ = gameView;
+	// 別のウィンドウに切り替えたら解除（戻ってきた時にいきなり閉じ込めない）
+	if (!active) {
+		winApp->SetCursorCaptured(false);
+	}
+	// Esc で一時解除（Unity の Play モードと同じ操作）
+	if (!io.WantTextInput && input->TriggerKey(DIK_ESCAPE)) {
+		winApp->SetCursorCaptured(false);
+	}
+
+	// Game ウィンドウ表示中は、その画像の範囲に閉じ込める
+	bool hasArea = true;
+	if (gameView) {
+		hasArea = gui->GetGameViewRect(area);
+	}
+
+	// 解除中にゲーム画面をクリックしたら再び固定する
+	POINT cursor{};
+	::GetCursorPos(&cursor);
+	::ScreenToClient(hwnd, &cursor);
+	const bool cursorInArea = hasArea && ::PtInRect(&area, cursor);
+	if (active && !winApp->IsCursorCaptured() && cursorInArea && !io.WantCaptureMouse && input->IsTriggerMouse(0)) {
+		winApp->SetCursorCaptured(true);
+	}
+
+	// 従来表示（ゲーム画面の上に ImGui が重なる）では、ImGui を操作中は閉じ込めない
+	active = active && hasArea && (gameView || !io.WantCaptureMouse);
+#endif // USE_IMGUI
+
+	winApp->UpdateCursor(active, area);
 }
 
 void TuboEngine::Framework::Run() {

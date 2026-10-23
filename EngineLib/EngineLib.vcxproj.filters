@@ -644,6 +644,15 @@
     <ClInclude Include="..\engine\math\Vector4.h">
       <Filter>projects\engine\math</Filter>
     </ClInclude>
+    <ClInclude Include="..\engine\math\Easing.h">
+      <Filter>projects\engine\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\math\Tween.h">
+      <Filter>projects\engine\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\base\Utilities\GameTime.h">
+      <Filter>projects\engine\base\Utilities</Filter>
+    </ClInclude>
     <ClInclude Include="..\engine\graphic\data\VertexData.h">
       <Filter>projects\engine\graphic\data</Filter>
     </ClInclude>
