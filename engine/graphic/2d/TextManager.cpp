@@ -128,6 +128,13 @@ void TextManager::Finalize() {
 // ・textAlive_ が false のものは Update をスキップし、ループ後にまとめて erase する。
 // ・後ろから erase することでインデックスずれを防いでいる。
 void TextManager::UpdateAll() {
+    // ImGui の Load ボタンで予約されたレイアウトを、描画前のここで読み込む
+    if (!pendingLayoutPath_.empty()) {
+        const std::string path = std::move(pendingLayoutPath_);
+        pendingLayoutPath_.clear();
+        LoadTextLayout(path);
+    }
+
     for (size_t i = 0; i < texts_.size(); ++i) {
         if (i < textAlive_.size() && !textAlive_[i])
             continue;
@@ -196,9 +203,9 @@ void TextManager::DrawImGui() {
         static char layoutPathBuf[256] = "Resources/Text/Debug.json";
         ImGui::InputText("Layout Path", layoutPathBuf, sizeof(layoutPathBuf));
         if (ImGui::Button("Load Layout")) {
-            if (!LoadTextLayout(layoutPathBuf)) {
-                std::cerr << "Failed to load text layout: " << layoutPathBuf << std::endl;
-            }
+            // ここは描画の途中なので、その場では読み込まず次の UpdateAll で読み込む
+            // （失敗した時の理由は JsonManager が Console に出す）
+            RequestLoadTextLayout(layoutPathBuf);
         }
         ImGui::SameLine();
         if (ImGui::Button("Save Layout")) {
@@ -1096,6 +1103,7 @@ TextObject* TextManager::GetTextByName(const std::string& name) const {
 // すべてのテキスト（及びレイアウト定義）を削除
 // シーン終了時などに残らないようにするため呼び出します。
 void TextManager::ClearAllTexts() {
+    ++layoutRevision_; // 保持しているポインタは無効になる
     textDefs_.clear();
     texts_.clear();
     textAlive_.clear();
@@ -1134,6 +1142,7 @@ void TextManager::RemoveSprite(Sprite* sprite) {
 
 // すべてのスプライト（及びレイアウト定義）を削除
 void TextManager::ClearAllSprites() {
+    ++layoutRevision_; // 保持しているポインタは無効になる
     spriteDefs_.clear();
     sprites_.clear();
     spriteAlive_.clear();
@@ -1180,6 +1189,7 @@ bool TextManager::LoadTextLayout(const std::string& filePath) {
     spriteDefs_.clear();
     sprites_.clear();
     spriteAlive_.clear();
+    ++layoutRevision_; // ここで古いテキスト/スプライトのポインタは無効になる
 
     for (const json& jt : root["texts"]) {
         TextDefinition def{};

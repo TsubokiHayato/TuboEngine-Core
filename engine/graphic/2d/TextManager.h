@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -229,8 +230,19 @@ public:
     Sprite* GetSpriteByName(const std::string& name) const;
 
     // JSON レイアウトのロード/セーブ
+    // ※ LoadTextLayout は今あるテキスト/スプライトを全て破棄して作り直す。
+    //    GetTextByName などで取ったポインタは無効になるので、持っている側は
+    //    GetLayoutRevision() が変わったら取り直すこと（TitleScene::RefreshTextRefs 参照）。
     bool LoadTextLayout(const std::string& filePath);
     bool SaveTextLayout(const std::string& filePath) const;
+
+    // 次の UpdateAll() の最初にレイアウトを読み込む（ImGui の Load ボタン用）。
+    // 描画の途中でテキストを作り直すと、描画中のものを破棄してしまうため遅らせる。
+    void RequestLoadTextLayout(const std::string& filePath) { pendingLayoutPath_ = filePath; }
+
+    // テキスト/スプライトが作り直された回数（LoadTextLayout のたびに増える）。
+    // 前回覚えた値と違ったら、保持している TextObject* / Sprite* を取り直す。
+    uint32_t GetLayoutRevision() const { return layoutRevision_; }
 
 private:
     // ScreenAnchor + margin から「位置」と「揃え(h/v Align)」を計算するヘルパー。
@@ -277,6 +289,10 @@ private:
     std::vector<std::string> sizedFontNames_;
 
     std::vector<std::unique_ptr<TextObject>> texts_;
+
+    // レイアウトを作り直した回数（GetLayoutRevision）と、次の UpdateAll で読み込むパス
+    uint32_t layoutRevision_ = 0;
+    std::string pendingLayoutPath_;
 
     // 保存用のテキスト定義と TextObject の対応
     std::vector<TextDefinition> textDefs_;
