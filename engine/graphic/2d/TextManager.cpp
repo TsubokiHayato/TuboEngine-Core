@@ -2,14 +2,52 @@
 #include "externals/imgui/imgui.h"
 #include "ImGuiManager.h" // Window メニューでの表示/非表示制御に PanelPtr を使う
 #include "WinApp.h"       // 画面端アンカー計算に使うクライアント領域サイズ取得
-#include <externals/nlohmann/json.hpp>
+#include "JsonManager.h"  // レイアウト JSON の読み書き
 #include <filesystem> //  ディレクトリ作成用
 #include <fstream>
 #include <iostream>
 
 namespace TuboEngine {
 
-using nlohmann::json;
+// -----------------------------------------------------------------------------
+// TextDefinition / SpriteDefinition ⇔ JSON の対応表（保存と読み込みの両方に使う）。
+// ★ 定義に項目を増やしたら、ここに X("JSONのキー", メンバ名) を1行足すだけ。
+// -----------------------------------------------------------------------------
+#define TUBO_TEXT_DEFINITION_FIELDS(X)       \
+    X("name", name)                          \
+    X("text", text)                          \
+    X("font", fontName)                      \
+    X("fontSize", fontSize)                  \
+    X("position", position)                  \
+    X("color", color)                        \
+    X("scale", scale)                        \
+    X("horizontalAlign", horizontalAlign)    \
+    X("verticalAlign", verticalAlign)        \
+    X("anchor", anchor)                      \
+    X("margin", margin)                      \
+    X("relativeTo", relativeTo)              \
+    X("relativeAnchor", relativeAnchor)      \
+    X("relativeGap", relativeGap)
+
+#define TUBO_SPRITE_DEFINITION_FIELDS(X)     \
+    X("name", name)                          \
+    X("texture", textureFilePath)            \
+    X("position", position)                  \
+    X("size", size)                          \
+    X("color", color)                        \
+    X("rotation", rotation)                  \
+    X("anchorPoint", anchorPoint)            \
+    X("anchor", anchor)                      \
+    X("margin", margin)                      \
+    X("relativeTo", relativeTo)              \
+    X("relativeAnchor", relativeAnchor)      \
+    X("relativeGap", relativeGap)
+
+TUBO_JSON_DEFINE(TextManager::TextDefinition, TUBO_TEXT_DEFINITION_FIELDS)
+TUBO_JSON_DEFINE(TextManager::SpriteDefinition, TUBO_SPRITE_DEFINITION_FIELDS)
+
+
+using json = TuboEngine::JsonManager::Json;
 
 //----------------------------------------------------------------------------
 // TextManager シングルトン管理
@@ -1126,20 +1164,12 @@ bool TextManager::LoadTextLayout(const std::string& filePath) {
         dx->CommandExecution(); // 何もコマンドを積んでいなければ fence 待ちになるだけ
     }
 
-    std::ifstream ifs(filePath);
-    if (!ifs) {
-        return false;
-    }
-
     json root;
-    try {
-        ifs >> root;
-    } catch (...) {
-        std::cerr << "Failed to parse text layout JSON: " << filePath << std::endl;
-        return false;
+    if (!TuboEngine::JsonManager::Load(filePath, root)) {
+        return false; // 失敗理由は Console に出る
     }
 
-    if (!root.contains("texts") || !root["texts"].is_array()) {
+    if (!root.is_object() || !root.contains("texts") || !root["texts"].is_array()) {
         return false;
     }
 
@@ -1151,34 +1181,10 @@ bool TextManager::LoadTextLayout(const std::string& filePath) {
     sprites_.clear();
     spriteAlive_.clear();
 
-    // 以下は今の実装のまま
-    for (json& jt : root["texts"]) {
+    for (const json& jt : root["texts"]) {
         TextDefinition def{};
-        def.name = jt.value("name", "");
-        def.text = jt.value("text", "");
-        def.fontName = jt.value("font", PresetFontNames::Best10);
-        def.fontSize = jt.value("fontSize", 32.0f);
-        std::vector<float> posArr = jt.value("position", std::vector<float>{0.0f, 0.0f});
-        std::vector<float> colArr = jt.value("color", std::vector<float>{1.0f, 1.0f, 1.0f, 1.0f});
-        def.scale = jt.value("scale", 1.0f);
-        def.horizontalAlign = jt.value("horizontalAlign", 0);
-        def.verticalAlign   = jt.value("verticalAlign", 0);
-        def.anchor = static_cast<ScreenAnchor>(jt.value("anchor", 0));
-        std::vector<float> marginArr = jt.value("margin", std::vector<float>{20.0f, 20.0f});
-        def.relativeTo = jt.value("relativeTo", "");
-        def.relativeAnchor = static_cast<RelativeAnchor>(jt.value("relativeAnchor", 0));
-        def.relativeGap = jt.value("relativeGap", 8.0f);
-
-        if (posArr.size() >= 2) {
-            def.position = Math::Vector2{posArr[0], posArr[1]};
-        }
-        if (colArr.size() >= 4) {
-            def.color = Math::Vector4{colArr[0], colArr[1], colArr[2], colArr[3]};
-        }
-        if (marginArr.size() >= 2) {
-            def.margin = Math::Vector2{marginArr[0], marginArr[1]};
-        }
-
+        def.fontName = PresetFontNames::Best10; // "font" が無い時の既定
+        from_json(jt, def); // 無い項目は TextDefinition の初期値のまま
         textDefs_.push_back(def);
     }
 
@@ -1200,37 +1206,9 @@ bool TextManager::LoadTextLayout(const std::string& filePath) {
 
     // "sprites" 配列は無くても読み込みは成功させる（後方互換）。
     if (root.contains("sprites") && root["sprites"].is_array()) {
-        for (json& js : root["sprites"]) {
+        for (const json& js : root["sprites"]) {
             SpriteDefinition def{};
-            def.name = js.value("name", "");
-            def.textureFilePath = js.value("texture", "");
-            std::vector<float> posArr  = js.value("position", std::vector<float>{0.0f, 0.0f});
-            std::vector<float> sizeArr = js.value("size", std::vector<float>{160.0f, 160.0f});
-            std::vector<float> colArr  = js.value("color", std::vector<float>{1.0f, 1.0f, 1.0f, 1.0f});
-            def.rotation = js.value("rotation", 0.0f);
-            def.anchor = static_cast<ScreenAnchor>(js.value("anchor", 0));
-            std::vector<float> marginArr = js.value("margin", std::vector<float>{20.0f, 20.0f});
-            def.relativeTo = js.value("relativeTo", "");
-            def.relativeAnchor = static_cast<RelativeAnchor>(js.value("relativeAnchor", 0));
-            def.relativeGap = js.value("relativeGap", 8.0f);
-            std::vector<float> anchorPointArr = js.value("anchorPoint", std::vector<float>{0.0f, 0.0f});
-
-            if (posArr.size() >= 2) {
-                def.position = Math::Vector2{posArr[0], posArr[1]};
-            }
-            if (sizeArr.size() >= 2) {
-                def.size = Math::Vector2{sizeArr[0], sizeArr[1]};
-            }
-            if (colArr.size() >= 4) {
-                def.color = Math::Vector4{colArr[0], colArr[1], colArr[2], colArr[3]};
-            }
-            if (marginArr.size() >= 2) {
-                def.margin = Math::Vector2{marginArr[0], marginArr[1]};
-            }
-            if (anchorPointArr.size() >= 2) {
-                def.anchorPoint = Math::Vector2{anchorPointArr[0], anchorPointArr[1]};
-            }
-
+            from_json(js, def); // 無い項目は SpriteDefinition の初期値のまま
             spriteDefs_.push_back(def);
         }
 
@@ -1262,62 +1240,15 @@ bool TextManager::LoadTextLayout(const std::string& filePath) {
 bool TextManager::SaveTextLayout(const std::string& filePath) const {
     json root;
     root["texts"] = json::array();
-
     for (const TextDefinition& def : textDefs_) {
-        json jt;
-        jt["name"] = def.name;
-        jt["text"] = def.text;
-        jt["font"] = def.fontName;
-        jt["fontSize"] = def.fontSize;
-        jt["position"] = {def.position.x, def.position.y};
-        jt["color"] = {def.color.x, def.color.y, def.color.z, def.color.w};
-        jt["scale"] = def.scale;
-        jt["horizontalAlign"] = def.horizontalAlign;
-        jt["verticalAlign"]   = def.verticalAlign;
-        jt["anchor"] = static_cast<int>(def.anchor);
-        jt["margin"] = {def.margin.x, def.margin.y};
-        jt["relativeTo"] = def.relativeTo;
-        jt["relativeAnchor"] = static_cast<int>(def.relativeAnchor);
-        jt["relativeGap"] = def.relativeGap;
-        root["texts"].push_back(jt);
+        root["texts"].push_back(def);
     }
-
     root["sprites"] = json::array();
     for (const SpriteDefinition& def : spriteDefs_) {
-        json js;
-        js["name"] = def.name;
-        js["texture"] = def.textureFilePath;
-        js["position"] = {def.position.x, def.position.y};
-        js["size"] = {def.size.x, def.size.y};
-        js["color"] = {def.color.x, def.color.y, def.color.z, def.color.w};
-        js["rotation"] = def.rotation;
-        js["anchorPoint"] = {def.anchorPoint.x, def.anchorPoint.y};
-        js["anchor"] = static_cast<int>(def.anchor);
-        js["margin"] = {def.margin.x, def.margin.y};
-        js["relativeTo"] = def.relativeTo;
-        js["relativeAnchor"] = static_cast<int>(def.relativeAnchor);
-        js["relativeGap"] = def.relativeGap;
-        root["sprites"].push_back(js);
+        root["sprites"].push_back(def);
     }
-
-    // 親ディレクトリが無ければ作成
-    try {
-        std::filesystem::path path(filePath);
-        if (path.has_parent_path()) {
-            std::filesystem::create_directories(path.parent_path());
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Failed to create directories for layout: " << e.what() << std::endl;
-        return false;
-    }
-
-    std::ofstream ofs(filePath);
-    if (!ofs) {
-        std::cerr << "Failed to open layout file for writing: " << filePath << std::endl;
-        return false;
-    }
-    ofs << root.dump(2);
-    return true;
+    // フォルダ作成・書き込み途中で落ちても壊れない保存は JsonManager が行う
+    return TuboEngine::JsonManager::Save(filePath, root);
 }
 
 } // namespace TuboEngine

@@ -282,6 +282,9 @@
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp">
       <Filter>projects\engine\base\Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\base\Utilities\JsonManager.cpp">
+      <Filter>projects\engine\base\Utilities</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\imgui\EditorPanels.cpp">
       <Filter>projects\engine\imgui</Filter>
     </ClCompile>
@@ -512,6 +515,9 @@
     <ClInclude Include="..\engine\graphic\Particle\ParticleManager.h">
       <Filter>projects\engine\graphic\Particle</Filter>
     </ClInclude>
+    <ClInclude Include="..\engine\graphic\Particle\ParticlePresetJson.h">
+      <Filter>projects\engine\graphic\Particle</Filter>
+    </ClInclude>
     <ClInclude Include="..\engine\graphic\Particle\Effects\Primitive\PrimitiveEmitter.h">
       <Filter>projects\engine\graphic\Particle\Effects\Primitive</Filter>
     </ClInclude>
@@ -582,6 +588,9 @@
       <Filter>projects\engine\input</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\base\Utilities\Logger.h">
+      <Filter>projects\engine\base\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\base\Utilities\JsonManager.h">
       <Filter>projects\engine\base\Utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\graphic\data\Material.h">

@@ -202,6 +202,7 @@
     <ClCompile Include="..\engine\base\Common\DirectXCommon.cpp" />
     <ClCompile Include="..\engine\input\Input.cpp" />
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp" />
+    <ClCompile Include="..\engine\base\Utilities\JsonManager.cpp" />
     <ClCompile Include="..\engine\imgui\EditorPanels.cpp" />
     <ClCompile Include="..\engine\imgui\ImGuiManager.cpp" />
     <ClCompile Include="..\engine\scene\IScene.cpp" />
@@ -273,6 +274,7 @@
     <ClInclude Include="..\engine\graphic\Particle\Effects\OrbitTrail\OrbitTrailEmitter.h" />
     <ClInclude Include="..\engine\graphic\Particle\Effects\Original\OriginalEmitter.h" />
     <ClInclude Include="..\engine\graphic\Particle\ParticleManager.h" />
+    <ClInclude Include="..\engine\graphic\Particle\ParticlePresetJson.h" />
     <ClInclude Include="..\engine\graphic\Particle\Effects\Primitive\PrimitiveEmitter.h" />
     <ClInclude Include="..\engine\graphic\Particle\Effects\Ring\RingEmitter.h" />
     <ClInclude Include="..\engine\graphic\PostEffect\Effects\Bloom\BloomEffect.h" />
@@ -299,6 +301,7 @@
     <ClInclude Include="..\engine\base\Common\DirectXCommon.h" />
     <ClInclude Include="..\engine\input\Input.h" />
     <ClInclude Include="..\engine\base\Utilities\Logger.h" />
+    <ClInclude Include="..\engine\base\Utilities\JsonManager.h" />
     <ClInclude Include="..\engine\graphic\data\Material.h" />
     <ClInclude Include="..\engine\graphic\data\MaterialData.h" />
     <ClInclude Include="..\engine\math\Matrix3x3.h" />

@@ -1,8 +1,9 @@
 #include "ParticleManager.h"
 #include "ImGuiManager.h"
 #include "Camera.h"
-#include <externals/nlohmann/json.hpp>
-#include <fstream>
+#include "ParticlePresetJson.h" // ParticlePreset ⇔ JSON の対応表（項目はここで1回だけ定義）
+#include "JsonManager.h"
+#include <filesystem>
 #include <algorithm>
 #include <cstdarg>
 #include "Effects/Primitive/PrimitiveEmitter.h"
@@ -78,6 +79,54 @@ namespace {
         FixMinMax(p.velMin, p.velMax);
         FixMinMax(p.scaleMin, p.scaleMax);
         FixMinMax(p.colMin, p.colMax);
+    }
+}
+
+namespace {
+    using Json = TuboEngine::JsonManager::Json;
+
+    // エミッター1個を JSON にする（プリセット＋種類＋種類固有の値）
+    Json EmitterToJson(const IParticleEmitter& emitter, const std::string& type) {
+        Json j = emitter.GetPreset(); // 項目は ParticlePresetJson.h の一覧どおり
+        j["type"] = type;
+        if (auto* cyl = dynamic_cast<const CylinderEmitter*>(&emitter)) {
+            j["spinSpeedY"] = cyl->GetSpinSpeedY();
+        }
+        return j;
+    }
+
+    // JSON 1個からエミッターを作る。作れたら true
+    bool CreateEmitterFromJson(TuboEngine::ParticleManager& manager, const Json& j) {
+        if (!j.is_object()) {
+            return false;
+        }
+        ParticlePreset preset; // 無い項目は ParticlePreset の初期値
+        try {
+            j.get_to(preset);
+        } catch (const std::exception&) {
+            return false;
+        }
+        IParticleEmitter* emitter = manager.CreateEmitterByType(j.value("type", std::string("Primitive")), preset);
+        if (auto* cyl = dynamic_cast<CylinderEmitter*>(emitter)) {
+            float spin = cyl->GetSpinSpeedY();
+            TuboEngine::JsonManager::Read(j, "spinSpeedY", spin);
+            cyl->SetSpinSpeedY(spin);
+        }
+        return emitter != nullptr;
+    }
+
+    // 保存ファイルの形式の違いを吸収して "emitters" 配列を取り出す
+    //   version 2: { "version": 2, "snapshot": { "emitters": [...] } }
+    //   旧形式   : { "emitters": [...] }
+    const Json* FindEmittersArray(const Json& root) {
+        const Json* container = &root;
+        if (root.is_object() && root.contains("snapshot")) {
+            container = &root["snapshot"];
+        }
+        if (!container->is_object() || !container->contains("emitters") || !(*container)["emitters"].is_array()) {
+            return nullptr;
+        }
+        return &(*container)["emitters"];
     }
 }
 
@@ -276,7 +325,13 @@ void TuboEngine::ParticleManager::Remove(const std::string& name) {
 }
 
 std::string TuboEngine::ParticleManager::BuildSnapshotJson() const {
-    nlohmann::json root; for (auto& e : emitters_) { const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e.get()); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"center",{p.center.x,p.center.y,p.center.z}},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; if (auto* cyl = dynamic_cast<CylinderEmitter*>(e.get())) j["spinSpeedY"] = cyl->GetSpinSpeedY(); root["emitters"].push_back(j);} return root.dump(); }
+    Json root;
+    root["emitters"] = Json::array();
+    for (const auto& e : emitters_) {
+        root["emitters"].push_back(EmitterToJson(*e, DetectEmitterType(e.get())));
+    }
+    return root.dump();
+}
 
 void TuboEngine::ParticleManager::CaptureHistory() {
 	std::string snap = BuildSnapshotJson();
@@ -295,41 +350,21 @@ void TuboEngine::ParticleManager::ApplySnapshot(const std::string& jsonStr) {
     // （CreateEmitterByType が MarkChanged を立てるため、復元そのものが「変更」として
     //   再記録され、Redo履歴を消してUndo/Redoが効かなくなるのを防ぐ）
     applyingSnapshot_ = true;
-    nlohmann::json root; try { root = nlohmann::json::parse(jsonStr); } catch (...) { SetStatus("Snapshot parse error"); applyingSnapshot_ = false; return; }
-    emitters_.clear(); if (!root.contains("emitters")) { SetStatus("Snapshot missing 'emitters'"); applyingSnapshot_ = false; return; }
-    for (auto& j : root["emitters"]) {
-        ParticlePreset p; std::string type=j.value("type","Primitive"); p.name=j.value("name",""); p.texture=j.value("texture",""); p.maxInstances=j.value("maxInstances",128); p.billboard=j.value("billboard",true); p.emitRate=j.value("emitRate",30.0f); p.autoEmit=j.value("autoEmit",false); p.burstCount=j.value("burstCount",10); p.lifeMin=j.value("lifeMin",0.5f); p.lifeMax=j.value("lifeMax",1.5f);
-		auto readV3 = [&](const char* key, TuboEngine::Math::Vector3 def) {
-			if (!j.contains(key))
-				return def;
-			auto arr = j[key];
-			if (arr.size() != 3)
-				return def;
-			return TuboEngine::Math::Vector3{arr[0], arr[1], arr[2]};
-		};
-		auto readV4 = [&](const char* key, TuboEngine::Math::Vector4 def) {
-			if (!j.contains(key))
-				return def;
-			auto arr = j[key];
-			if (arr.size() != 4)
-				return def;
-			return Vector4{arr[0], arr[1], arr[2], arr[3]};
-		};
-		p.posMin = readV3("posMin", {});
-		p.posMax = readV3("posMax", {});
-		p.velMin = readV3("velMin", {});
-		p.velMax = readV3("velMax", {});
-		p.scaleStart = readV3("scaleStart", {1, 1, 1});
-		p.scaleEnd = readV3("scaleEnd", {1, 1, 1});
-		p.colorStart = readV4("colorStart", {1, 1, 1, 1});
-		p.colorEnd = readV4("colorEnd", {1, 1, 1, 0});
-		p.gravity = readV3("gravity", {0, -0.5f, 0});
-		p.center = readV3("center", {0, 0, 0});
-		TuboEngine::Math::Vector3 emPos = readV3("emitterPos", {0, 0, 0});
-		p.emitterTransform.translate = emPos;
-		p.drag = j.value("drag", 0.0f);
-		p.simulateInWorldSpace = j.value("simulateInWorldSpace", true);
-        if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
+    Json root;
+    if (!TuboEngine::JsonManager::Parse(jsonStr, root)) {
+        SetStatus("Snapshot parse error");
+        applyingSnapshot_ = false;
+        return;
+    }
+    const Json* emitters = FindEmittersArray(root);
+    if (!emitters) {
+        SetStatus("Snapshot missing 'emitters'");
+        applyingSnapshot_ = false;
+        return;
+    }
+    emitters_.clear();
+    for (const Json& j : *emitters) {
+        CreateEmitterFromJson(*this, j);
     }
     SetStatus("Snapshot applied (%zu emitters)", emitters_.size());
     applyingSnapshot_ = false;
@@ -357,113 +392,88 @@ void TuboEngine::ParticleManager::Redo() {
 }
 
 void TuboEngine::ParticleManager::SaveAll(const std::string& path) {
-	nlohmann::json root;
-	root["version"] = 2;
-	root["snapshot"] = nlohmann::json::parse(BuildSnapshotJson());
-	std::ofstream ofs(path);
-	if (!ofs) {
-		SetStatus("Save failed: %s", path.c_str());
-		return;
-	}
-	ofs << root.dump(2);
-	SetStatus("Saved %zu emitters", emitters_.size());
+    Json root;
+    root["version"] = 2;
+    root["snapshot"]["emitters"] = Json::array();
+    for (const auto& e : emitters_) {
+        root["snapshot"]["emitters"].push_back(EmitterToJson(*e, DetectEmitterType(e.get())));
+    }
+    if (!TuboEngine::JsonManager::Save(path, root)) {
+        SetStatus("Save failed: %s", path.c_str());
+        return;
+    }
+    SetStatus("Saved %zu emitters", emitters_.size());
 }
 
 void TuboEngine::ParticleManager::LoadAll(const std::string& path) {
-    std::ifstream ifs(path); if(!ifs){ SetStatus("Load failed: %s", path.c_str()); return; }
-    nlohmann::json root; try { root=nlohmann::json::parse(ifs); } catch (...) { SetStatus("Load parse error"); return; }
-    emitters_.clear(); nlohmann::json snap; if(root.contains("snapshot")) snap=root["snapshot"]; else if(root.contains("emitters")) snap=root; else { SetStatus("Load: missing snapshot"); return; }
-    if(!snap.contains("emitters")) { SetStatus("Load: no emitters field"); return; }
-    for(auto& j : snap["emitters"]) {
-        ParticlePreset p; std::string type=j.value("type","Primitive"); p.name=j.value("name",""); p.texture=j.value("texture",""); p.maxInstances=j.value("maxInstances",128); p.billboard=j.value("billboard",true); p.emitRate=j.value("emitRate",30.0f); p.autoEmit=j.value("autoEmit",false); p.burstCount=j.value("burstCount",10); p.lifeMin=j.value("lifeMin",0.5f); p.lifeMax=j.value("lifeMax",1.5f);
-		auto readV3 = [&](const char* key, TuboEngine::Math::Vector3 def) {
-			if (!j.contains(key))
-				return def;
-			auto arr = j[key];
-			if (arr.size() != 3)
-				return def;
-			return TuboEngine::Math::Vector3{arr[0], arr[1], arr[2]};
-		};
-		auto readV4 = [&](const char* key, Vector4 def) {
-			if (!j.contains(key))
-				return def;
-			auto arr = j[key];
-			if (arr.size() != 4)
-				return def;
-			return Vector4{arr[0], arr[1], arr[2], arr[3]};
-		};
-		p.posMin = readV3("posMin", {});
-		p.posMax = readV3("posMax", {});
-		p.velMin = readV3("velMin", {});
-		p.velMax = readV3("velMax", {});
-		p.scaleStart = readV3("scaleStart", {1, 1, 1});
-		p.scaleEnd = readV3("scaleEnd", {1, 1, 1});
-		p.colorStart = readV4("colorStart", {1, 1, 1, 1});
-		p.colorEnd = readV4("colorEnd", {1, 1, 1, 0});
-		p.gravity = readV3("gravity", {0, -0.5f, 0});
-		p.center = readV3("center", {0, 0, 0});
-		TuboEngine::Math::Vector3 emPos = readV3("emitterPos", {0, 0, 0});
-		p.emitterTransform.translate = emPos;
-		p.drag = j.value("drag", 0.0f);
-		p.simulateInWorldSpace = j.value("simulateInWorldSpace", true);
-        if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
+    Json root;
+    if (!TuboEngine::JsonManager::Load(path, root)) {
+        SetStatus("Load failed: %s", path.c_str());
+        return;
     }
-    SetStatus("Loaded %zu emitters", emitters_.size()); MarkChanged();
+    const Json* emitters = FindEmittersArray(root);
+    if (!emitters) {
+        SetStatus("Load: no emitters field");
+        return;
+    }
+    emitters_.clear();
+    for (const Json& j : *emitters) {
+        CreateEmitterFromJson(*this, j);
+    }
+    SetStatus("Loaded %zu emitters", emitters_.size());
+    MarkChanged();
 }
 
 void TuboEngine::ParticleManager::SaveSelected(const std::string& path, const std::vector<std::string>& names) {
-    nlohmann::json root; for (auto& name : names) { auto* e = Find(name); if(!e) continue; const auto& p = e->GetPreset(); std::string type = DetectEmitterType(e); nlohmann::json j{{"type",type},{"name",p.name},{"texture",p.texture},{"maxInstances",p.maxInstances},{"billboard",p.billboard},{"emitRate",p.emitRate},{"autoEmit",p.autoEmit},{"burstCount",p.burstCount},{"lifeMin",p.lifeMin},{"lifeMax",p.lifeMax},{"posMin",{p.posMin.x,p.posMin.y,p.posMin.z}},{"posMax",{p.posMax.x,p.posMax.y,p.posMax.z}},{"velMin",{p.velMin.x,p.velMin.y,p.velMin.z}},{"velMax",{p.velMax.x,p.velMax.y,p.velMax.z}},{"scaleStart",{p.scaleStart.x,p.scaleStart.y,p.scaleStart.z}},{"scaleEnd",{p.scaleEnd.x,p.scaleEnd.y,p.scaleEnd.z}},{"colorStart",{p.colorStart.x,p.colorStart.y,p.colorStart.z,p.colorStart.w}},{"colorEnd",{p.colorEnd.x,p.colorEnd.y,p.colorEnd.z,p.colorEnd.w}},{"gravity",{p.gravity.x,p.gravity.y,p.gravity.z}},{"drag",p.drag},{"simulateInWorldSpace",p.simulateInWorldSpace},{"emitterPos",{p.emitterTransform.translate.x,p.emitterTransform.translate.y,p.emitterTransform.translate.z}}}; if (auto* cyl = dynamic_cast<CylinderEmitter*>(e)) j["spinSpeedY"] = cyl->GetSpinSpeedY(); root["emitters"].push_back(j);} std::ofstream ofs(path); if(!ofs){ SetStatus("SaveSelected failed"); return; } ofs<<root.dump(2); SetStatus("Saved %zu selected", root["emitters"].size()); }
+    Json root;
+    root["emitters"] = Json::array();
+    for (const auto& name : names) {
+        IParticleEmitter* e = Find(name);
+        if (!e) {
+            continue;
+        }
+        root["emitters"].push_back(EmitterToJson(*e, DetectEmitterType(e)));
+    }
+    if (!TuboEngine::JsonManager::Save(path, root)) {
+        SetStatus("SaveSelected failed");
+        return;
+    }
+    SetStatus("Saved %zu selected", root["emitters"].size());
+}
 
 void TuboEngine::ParticleManager::LoadMerge(const std::string& path) {
-    std::ifstream ifs(path); if(!ifs){ SetStatus("Merge load failed"); return; } nlohmann::json root; try { root=nlohmann::json::parse(ifs); } catch (...) { SetStatus("Merge parse error"); return; }
-    if (!root.contains("emitters")) { SetStatus("Merge: no emitters"); return; }
-	size_t added = 0;
-	for (auto& j : root["emitters"]) {
-		ParticlePreset p;
-		std::string type = j.value("type", "Primitive");
-		p.name = j.value("name", "");
-		p.texture = j.value("texture", "");
-		p.maxInstances = j.value("maxInstances", 128);
-		p.billboard = j.value("billboard", true);
-		p.emitRate = j.value("emitRate", 30.0f);
-		p.autoEmit = j.value("autoEmit", false);
-		p.burstCount = j.value("burstCount", 10);
-		p.lifeMin = j.value("lifeMin", 0.5f);
-		p.lifeMax = j.value("lifeMax", 1.5f);
-		auto readV3 = [&](const char* key, TuboEngine::Math::Vector3 def) {
-			if (!j.contains(key))
-				return def;
-			auto arr = j[key];
-			if (arr.size() != 3)
-				return def;
-			return TuboEngine::Math::Vector3{arr[0], arr[1], arr[2]};
-		};
-		p.posMin = readV3("posMin", {});
-		p.posMax = readV3("posMax", {});
-		p.velMin = readV3("velMin", {});
-		p.velMax = readV3("velMax", {});
-		p.scaleStart = readV3("scaleStart", {1, 1, 1});
-		p.scaleEnd = readV3("scaleEnd", {1, 1, 1});
-		p.gravity = readV3("gravity", {0, -0.5f, 0});
-		TuboEngine::Math::Vector3 emPos = readV3("emitterPos", {0, 0, 0});
-		p.emitterTransform.translate = emPos;
-		if (auto* cyl = dynamic_cast<CylinderEmitter*>(CreateEmitterByType(type, p))) cyl->SetSpinSpeedY(j.value("spinSpeedY", cyl->GetSpinSpeedY()));
-		++added;
-	}
-	SetStatus("Merged %zu emitters", added);
-	MarkChanged();
+    Json root;
+    if (!TuboEngine::JsonManager::Load(path, root)) {
+        SetStatus("Merge load failed");
+        return;
+    }
+    const Json* emitters = FindEmittersArray(root);
+    if (!emitters) {
+        SetStatus("Merge: no emitters");
+        return;
+    }
+    size_t added = 0;
+    for (const Json& j : *emitters) {
+        if (CreateEmitterFromJson(*this, j)) {
+            ++added;
+        }
+    }
+    SetStatus("Merged %zu emitters", added);
+    MarkChanged();
 }
 
 void TuboEngine::ParticleManager::InitialLoad(const std::string& filePath) {
-	if (initialLoaded_)
-		return;
-	initialLoaded_ = true;
-	std::ifstream ifs(filePath);
-	if (!ifs) {
-		SetStatus("Initial load skipped (%s not found)", filePath.c_str());
-		return;
-	}
-	LoadAll(filePath);
+    if (initialLoaded_)
+        return;
+    initialLoaded_ = true;
+    // ファイルが無い・空のときは何も読まない（初回起動時など。エラーにはしない）
+    std::error_code ec;
+    const std::string resolved = TuboEngine::JsonManager::ResolvePath(filePath);
+    if (!std::filesystem::exists(resolved, ec) || std::filesystem::file_size(resolved, ec) == 0) {
+        SetStatus("Initial load skipped (%s not found or empty)", filePath.c_str());
+        return;
+    }
+    LoadAll(filePath);
 }
 
 #ifdef USE_IMGUI
