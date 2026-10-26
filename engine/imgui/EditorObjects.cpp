@@ -4,13 +4,20 @@
 #include "Object3d.h"
 #include "Sprite.h"
 #include "TextObject.h"
+#include "EditorPanels.h"
+#include "SceneManager.h"
+#include "SceneSaveData.h"
+#include "TextureManager.h"
 #ifdef USE_IMGUI
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_internal.h" // ホバー中のウィンドウ判定
 #endif // USE_IMGUI
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <map>
 
 namespace TuboEngine::Editor {
 
@@ -38,6 +45,61 @@ GizmoDrag& Drag() {
 	static GizmoDrag drag;
 	return drag;
 }
+
+// シーン開始時（または最後に保存した時）の値。名前ごと。シーンが作り直されたら消す
+struct Baselines {
+	uint32_t sceneGeneration = 0;
+	std::map<std::string, SceneSaveData::ObjectData> values;
+};
+Baselines& BaselineStore() {
+	static Baselines store;
+	return store;
+}
+
+// オブジェクトの今の値を保存形式にする（持っている項目だけ）
+SceneSaveData::ObjectData Snapshot(const EditorObject& e) {
+	SceneSaveData::ObjectData d;
+	if (e.getPosition) d.position = e.getPosition();
+	if (e.getRotation) d.rotation = e.getRotation();
+	if (e.getScale) d.scale = e.getScale();
+	if (e.getColor) d.color = e.getColor();
+	if (e.getTexture) d.texture = e.getTexture();
+	return d;
+}
+
+bool Near(float a, float b) { return std::fabs(a - b) < 1e-4f; }
+bool SameV3(const std::optional<Math::Vector3>& a, const std::optional<Math::Vector3>& b) {
+	if (a.has_value() != b.has_value()) return false;
+	return !a || (Near(a->x, b->x) && Near(a->y, b->y) && Near(a->z, b->z));
+}
+bool SameV4(const std::optional<Math::Vector4>& a, const std::optional<Math::Vector4>& b) {
+	if (a.has_value() != b.has_value()) return false;
+	return !a || (Near(a->x, b->x) && Near(a->y, b->y) && Near(a->z, b->z) && Near(a->w, b->w));
+}
+bool SameData(const SceneSaveData::ObjectData& a, const SceneSaveData::ObjectData& b) {
+	return SameV3(a.position, b.position) && SameV3(a.rotation, b.rotation) && SameV3(a.scale, b.scale) && SameV4(a.color, b.color) && a.texture == b.texture;
+}
+
+// 保存値（または起動時の値）をオブジェクトに戻す
+void ApplyData(EditorObject& e, const SceneSaveData::ObjectData& d) {
+	if (d.position && e.setPosition) e.setPosition(*d.position);
+	if (d.rotation && e.setRotation) e.setRotation(*d.rotation);
+	if (d.scale && e.setScale) e.setScale(*d.scale);
+	if (d.color && e.setColor) e.setColor(*d.color);
+	if (d.texture && e.setTexture) e.setTexture(*d.texture);
+}
+
+bool HasSavableValues(const EditorObject& e) { return e.getPosition || e.getRotation || e.getScale || e.getColor || e.getTexture; }
+
+// Sprite のテクスチャ差し替え（読み込めなければ false）
+bool SetSpriteTexture(Sprite* s, const std::string& name) {
+	TextureManager::GetInstance()->LoadTexture(name);
+	if (!TextureManager::GetInstance()->HasTexture(name)) {
+		return false;
+	}
+	s->SetTexture(name);
+	return true;
+}
 } // namespace
 
 // -----------------------------------------------------------------------------
@@ -52,6 +114,17 @@ void Register(EditorObject object) {
 		name = base + " (" + std::to_string(n) + ")";
 	}
 	object.name = name;
+
+	// シーンに最初に出てきた時の値を覚える（変更あり * の判定用）
+	Baselines& baselines = BaselineStore();
+	const uint32_t generation = SceneManager::GetInstance()->GetSceneGeneration();
+	if (baselines.sceneGeneration != generation) {
+		baselines.sceneGeneration = generation;
+		baselines.values.clear();
+	}
+	if (!baselines.values.contains(name) && HasSavableValues(object)) {
+		baselines.values[name] = Snapshot(object);
+	}
 	Objects().push_back(std::move(object));
 #else
 	(void)object;
@@ -75,6 +148,9 @@ void Inspect(const std::string& name, Object3d* o, std::function<void()> extra) 
 	e.setScale = [o](const Math::Vector3& v) { o->SetScale(v); };
 	e.getColor = [o] { return o->GetModelColor(); };
 	e.setColor = [o](const Math::Vector4& v) { o->SetModelColor(v); };
+	e.getTexture = [o] { return o->GetTexture(); };
+	e.setTexture = [o](const std::string& name) { return o->SetTexture(name); };
+	e.clearTexture = [o] { o->ClearTexture(); };
 	e.drawExtra = std::move(extra);
 	Register(std::move(e));
 #else
@@ -99,6 +175,9 @@ void Inspect(const std::string& name, Animator* a, std::function<void()> extra) 
 	e.setScale = [a](const Math::Vector3& v) { a->SetScale(v); };
 	e.getColor = [a] { return a->GetModelColor(); };
 	e.setColor = [a](const Math::Vector4& v) { a->SetModelColor(v); };
+	e.getTexture = [a] { return a->GetObject3d()->GetTexture(); };
+	e.setTexture = [a](const std::string& name) { return a->GetObject3d()->SetTexture(name); };
+	e.clearTexture = [a] { a->GetObject3d()->ClearTexture(); };
 	e.drawExtra = [a, extra = std::move(extra)] {
 		ImGui::SeparatorText("Animation");
 		ImGui::Text("%s  %.2f / %.2f s", a->GetCurrentAnimationName().c_str(), a->GetAnimationTime(), a->GetDuration());
@@ -129,6 +208,8 @@ void Inspect(const std::string& name, Sprite* s, std::function<void()> extra) {
 	e.setScale = [s](const Math::Vector3& v) { s->SetSize({v.x, v.y}); };
 	e.getColor = [s] { return s->GetColor(); };
 	e.setColor = [s](const Math::Vector4& v) { s->SetColor(v); };
+	e.getTexture = [s] { return s->GetTexture(); };
+	e.setTexture = [s](const std::string& name) { return SetSpriteTexture(s, name); };
 	e.drawExtra = std::move(extra);
 	Register(std::move(e));
 #else
@@ -185,6 +266,134 @@ EditorObject* FindObject(const std::string& name) {
 bool IsGizmoDragging() { return Drag().axis >= 0; }
 
 // -----------------------------------------------------------------------------
+// テクスチャ / 保存
+// -----------------------------------------------------------------------------
+std::string ToTextureName(const std::string& resourcePath) {
+	namespace fs = std::filesystem;
+	const std::string prefix = "Resources/Textures/";
+	std::string path = resourcePath;
+	std::replace(path.begin(), path.end(), '\\', '/');
+	if (path.compare(0, prefix.size(), prefix) == 0) {
+		return path.substr(prefix.size());
+	}
+	const fs::path relative = fs::path(path).lexically_relative("Resources/Textures");
+	return relative.empty() ? path : relative.generic_string();
+}
+
+bool IsImagePath(const std::string& path) {
+	std::string ext = std::filesystem::path(path).extension().string();
+	std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+	return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".dds" || ext == ".bmp" || ext == ".tga";
+}
+
+bool IsModified(const EditorObject& e) {
+	const Baselines& baselines = BaselineStore();
+	auto it = baselines.values.find(e.name);
+	return it != baselines.values.end() && !SameData(it->second, Snapshot(e));
+}
+
+bool SaveObject(const EditorObject& e) {
+	if (!HasSavableValues(e)) {
+		return false;
+	}
+	const SceneSaveData::ObjectData data = Snapshot(e);
+	if (!SceneSaveData::Store(e.name, data)) {
+		return false;
+	}
+	BaselineStore().values[e.name] = data; // 保存した状態を「変更なし」の基準にする
+	return true;
+}
+
+#ifdef USE_IMGUI
+namespace {
+// テクスチャ欄: 今のテクスチャ・ドロップ先・Project で選択中の画像を使う・元に戻す
+void DrawTextureField(EditorObject& e) {
+	static std::string lastError;
+	static std::string lastErrorObject;
+	const std::string current = e.getTexture();
+	ImGui::TextWrapped("%s", current.empty() ? "(なし)" : current.c_str());
+
+	auto apply = [&](const std::string& resourcePath) {
+		const std::string name = ToTextureName(resourcePath);
+		if (e.setTexture(name)) {
+			lastError.clear();
+		} else {
+			lastError = "読み込めませんでした: " + name;
+			lastErrorObject = e.name;
+		}
+	};
+
+	// Project ウィンドウから画像をドラッグ＆ドロップ
+	ImGui::Button("ここに画像をドロップ", ImVec2(-FLT_MIN, 0.0f));
+	if (ImGui::BeginDragDropTarget()) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+			const std::string path = static_cast<const char*>(payload->Data);
+			if (IsImagePath(path)) {
+				apply(path);
+			} else {
+				lastError = "画像ファイルではありません: " + path;
+				lastErrorObject = e.name;
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
+	// Project ウィンドウでクリックして選んだ画像を使う
+	const std::string selectedPath = GetProjectSelectedPath();
+	const bool canUseSelected = IsImagePath(selectedPath);
+	if (!canUseSelected) ImGui::BeginDisabled();
+	if (ImGui::Button("Project で選択中の画像を使う")) {
+		apply(selectedPath);
+	}
+	if (!canUseSelected) ImGui::EndDisabled();
+	if (e.clearTexture) {
+		ImGui::SameLine();
+		if (ImGui::Button("元に戻す##texture")) {
+			e.clearTexture();
+			lastError.clear();
+		}
+	}
+	if (!lastError.empty() && lastErrorObject == e.name) {
+		ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "%s", lastError.c_str());
+	}
+}
+
+// 保存欄: 変更あり表示・この状態を保存・保存を削除・変更を元に戻す
+void DrawSaveSection(EditorObject& e) {
+	ImGui::SeparatorText("保存");
+	const SceneSaveData::ObjectData* saved = SceneSaveData::Find(e.name);
+	if (IsModified(e)) {
+		ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "* 実行中に変更あり（保存しないと次回は戻ります）");
+	} else if (saved) {
+		ImGui::TextDisabled("保存済み");
+	}
+	if (ImGui::Button("この状態を保存")) {
+		SaveObject(e);
+	}
+	if (IsModified(e)) {
+		ImGui::SameLine();
+		if (ImGui::Button("変更を元に戻す")) {
+			auto it = BaselineStore().values.find(e.name);
+			if (it != BaselineStore().values.end()) {
+				ApplyData(e, it->second);
+			}
+		}
+	}
+	if (saved) {
+		ImGui::SameLine();
+		if (ImGui::Button("保存を削除")) {
+			SceneSaveData::Remove(e.name);
+		}
+		if (!SceneSaveData::WasApplied(e.name)) {
+			ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.4f, 1.0f), "このシーンはまだ保存値を読み込んでいません。");
+			ImGui::TextWrapped("シーンの Initialize で SceneSaveData::Apply(\"%s\", obj) を呼ぶと、次回の起動から反映されます。", e.name.c_str());
+		}
+	}
+	ImGui::TextDisabled("%s", SceneSaveData::GetFilePath().c_str());
+}
+} // namespace
+#endif // USE_IMGUI
+
+// -----------------------------------------------------------------------------
 // Inspector
 // -----------------------------------------------------------------------------
 void DrawObjectInspector(EditorObject& e) {
@@ -228,6 +437,12 @@ void DrawObjectInspector(EditorObject& e) {
 	if (e.getColor && e.setColor && ImGui::CollapsingHeader("Color", ImGuiTreeNodeFlags_DefaultOpen)) {
 		Math::Vector4 c = e.getColor();
 		if (ImGui::ColorEdit4("Color", &c.x)) e.setColor(c);
+	}
+	if (e.getTexture && e.setTexture && ImGui::CollapsingHeader("Texture", ImGuiTreeNodeFlags_DefaultOpen)) {
+		DrawTextureField(e);
+	}
+	if (HasSavableValues(e)) {
+		DrawSaveSection(e);
 	}
 	if (e.drawExtra) {
 		ImGui::Spacing();
@@ -363,6 +578,224 @@ void DrawGizmo(EditorObject& e, const Camera& camera, float minX, float minY, fl
 	dl->PopClipRect();
 #else
 	(void)e; (void)camera; (void)minX; (void)minY; (void)maxX; (void)maxY;
+#endif // USE_IMGUI
+}
+
+// -----------------------------------------------------------------------------
+// Hierarchy（フォルダ付きの木）
+// -----------------------------------------------------------------------------
+#ifdef USE_IMGUI
+namespace {
+constexpr const char* kObjectPayload = "EDITOR_OBJECT";
+constexpr const char* kFolderPayload = "EDITOR_FOLDER";
+
+std::string LeafName(const std::string& path) {
+	const size_t slash = path.rfind('/');
+	return slash == std::string::npos ? path : path.substr(slash + 1);
+}
+std::string ParentOf(const std::string& path) {
+	const size_t slash = path.rfind('/');
+	return slash == std::string::npos ? std::string() : path.substr(0, slash);
+}
+
+// 名前変更 / 新規フォルダの入力
+struct FolderEdit {
+	std::string target;  // 名前を変えるフォルダ（新規ならその親）
+	bool isNew = false;
+	char buffer[128] = {};
+	bool open = false;
+};
+FolderEdit& Edit() {
+	static FolderEdit edit;
+	return edit;
+}
+
+void BeginFolderEdit(const std::string& target, bool isNew) {
+	FolderEdit& ed = Edit();
+	ed.target = target;
+	ed.isNew = isNew;
+	const std::string initial = isNew ? std::string("New Folder") : LeafName(target);
+	std::snprintf(ed.buffer, sizeof(ed.buffer), "%s", initial.c_str());
+	ed.open = true;
+}
+
+// オブジェクト / フォルダのドロップを受けて、folder に入れる
+void AcceptDropInto(const std::string& folder) {
+	if (!ImGui::BeginDragDropTarget()) {
+		return;
+	}
+	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(kObjectPayload)) {
+		SceneSaveData::SetFolder(static_cast<const char*>(p->Data), folder);
+	}
+	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(kFolderPayload)) {
+		const std::string source = static_cast<const char*>(p->Data);
+		const std::string dest = folder.empty() ? LeafName(source) : folder + "/" + LeafName(source);
+		SceneSaveData::RenameFolder(source, dest);
+	}
+	ImGui::EndDragDropTarget();
+}
+
+void DrawObjectItem(EditorObject& object, std::string& selected, const std::function<void()>& onSelect) {
+	ImGui::PushID(object.name.c_str());
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
+	if (selected == object.name) {
+		flags |= ImGuiTreeNodeFlags_Selected;
+	}
+	const bool modified = IsModified(object);
+	const bool saved = SceneSaveData::Find(object.name) != nullptr;
+	ImGui::TreeNodeEx("##object", flags, "%s %s%s%s", object.is3D ? "[3D]" : "[2D]", object.name.c_str(), modified ? " *" : "", saved && !modified ? "  (保存済)" : "");
+	if (ImGui::IsItemClicked()) {
+		selected = object.name;
+		if (onSelect) onSelect();
+	}
+	if (modified && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
+		ImGui::SetTooltip("実行中に変更あり。右クリック →「この状態を保存」で次回も使えます");
+	}
+	if (ImGui::BeginDragDropSource()) {
+		ImGui::SetDragDropPayload(kObjectPayload, object.name.c_str(), object.name.size() + 1);
+		ImGui::Text("%s", object.name.c_str());
+		ImGui::EndDragDropSource();
+	}
+	if (ImGui::BeginPopupContextItem("##objectMenu")) {
+		if (ImGui::MenuItem("この状態を保存", nullptr, false, HasSavableValues(object))) {
+			SaveObject(object);
+		}
+		if (ImGui::MenuItem("保存を削除", nullptr, false, saved)) {
+			SceneSaveData::Remove(object.name);
+		}
+		ImGui::Separator();
+		if (ImGui::MenuItem("フォルダから出す", nullptr, false, !SceneSaveData::GetFolder(object.name).empty())) {
+			SceneSaveData::SetFolder(object.name, "");
+		}
+		ImGui::EndPopup();
+	}
+	ImGui::PopID();
+}
+
+// フォルダ1つ分（中のフォルダ → 中のオブジェクトの順）
+void DrawFolder(const std::string& folder, std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect) {
+	ImGui::PushID(folder.c_str());
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.82f, 0.45f, 1.0f));
+	const bool open = ImGui::TreeNodeEx("##folder", ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen, "[Folder] %s", LeafName(folder).c_str());
+	ImGui::PopStyleColor();
+	if (ImGui::BeginDragDropSource()) {
+		ImGui::SetDragDropPayload(kFolderPayload, folder.c_str(), folder.size() + 1);
+		ImGui::Text("[Folder] %s", LeafName(folder).c_str());
+		ImGui::EndDragDropSource();
+	}
+	AcceptDropInto(folder);
+	if (ImGui::BeginPopupContextItem("##folderMenu")) {
+		if (ImGui::MenuItem("この中に新しいフォルダ")) BeginFolderEdit(folder, true);
+		if (ImGui::MenuItem("名前を変更")) BeginFolderEdit(folder, false);
+		if (ImGui::MenuItem("削除（中身は1つ上へ）")) SceneSaveData::RemoveFolder(folder);
+		ImGui::EndPopup();
+	}
+	if (open) {
+		// 直下のフォルダ
+		for (const std::string& child : std::vector<std::string>(SceneSaveData::GetFolders())) {
+			if (ParentOf(child) == folder) {
+				DrawFolder(child, selected, passFilter, onSelect);
+			}
+		}
+		// 直下のオブジェクト
+		for (EditorObject& object : Objects()) {
+			if (SceneSaveData::GetFolder(object.name) == folder && passFilter(object.name)) {
+				DrawObjectItem(object, selected, onSelect);
+			}
+		}
+		ImGui::TreePop();
+	}
+	ImGui::PopID();
+}
+
+// 名前変更 / 新規フォルダのポップアップ
+void DrawFolderEditPopup() {
+	FolderEdit& ed = Edit();
+	if (ed.open) {
+		ImGui::OpenPopup("##folderEdit");
+		ed.open = false;
+	}
+	if (ImGui::BeginPopup("##folderEdit")) {
+		ImGui::Text(ed.isNew ? "新しいフォルダ" : "フォルダの名前を変更");
+		if (ImGui::IsWindowAppearing()) ImGui::SetKeyboardFocusHere();
+		const bool enter = ImGui::InputText("##name", ed.buffer, sizeof(ed.buffer), ImGuiInputTextFlags_EnterReturnsTrue);
+		std::string name = ed.buffer;
+		std::replace(name.begin(), name.end(), '/', '_'); // / はフォルダの区切りなので使わない
+		const bool valid = !name.empty();
+		if (!valid) ImGui::BeginDisabled();
+		if ((ImGui::Button("OK") || enter) && valid) {
+			if (ed.isNew) {
+				std::string path = ed.target.empty() ? name : ed.target + "/" + name;
+				// 同じ名前があれば番号を付ける
+				const auto& folders = SceneSaveData::GetFolders();
+				std::string unique = path;
+				for (int n = 2; std::find(folders.begin(), folders.end(), unique) != folders.end(); ++n) {
+					unique = path + " " + std::to_string(n);
+				}
+				SceneSaveData::AddFolder(unique);
+			} else {
+				const std::string parent = ParentOf(ed.target);
+				SceneSaveData::RenameFolder(ed.target, parent.empty() ? name : parent + "/" + name);
+			}
+			ImGui::CloseCurrentPopup();
+		}
+		if (!valid) ImGui::EndDisabled();
+		ImGui::SameLine();
+		if (ImGui::Button("キャンセル")) ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
+}
+} // namespace
+#endif // USE_IMGUI
+
+void AcceptDropToRoot() {
+#ifdef USE_IMGUI
+	AcceptDropInto("");
+#endif // USE_IMGUI
+}
+
+void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect) {
+#ifdef USE_IMGUI
+	// 上段: フォルダ作成 / 変更をまとめて保存
+	if (ImGui::SmallButton("+ フォルダ")) {
+		BeginFolderEdit("", true);
+	}
+	int modifiedCount = 0;
+	for (const EditorObject& object : Objects()) {
+		if (IsModified(object)) ++modifiedCount;
+	}
+	ImGui::SameLine();
+	if (modifiedCount == 0) ImGui::BeginDisabled();
+	char label[64];
+	std::snprintf(label, sizeof(label), "変更をすべて保存 (%d)", modifiedCount);
+	if (ImGui::SmallButton(label)) {
+		for (const EditorObject& object : Objects()) {
+			if (IsModified(object)) SaveObject(object);
+		}
+	}
+	if (modifiedCount == 0) ImGui::EndDisabled();
+
+	// フォルダ（一番上の階層）→ フォルダに入っていないオブジェクト
+	for (const std::string& folder : std::vector<std::string>(SceneSaveData::GetFolders())) {
+		if (ParentOf(folder).empty()) {
+			DrawFolder(folder, selected, passFilter, onSelect);
+		}
+	}
+	const auto& folders = SceneSaveData::GetFolders();
+	for (EditorObject& object : Objects()) {
+		const std::string folder = SceneSaveData::GetFolder(object.name);
+		// 入っているフォルダが消されていた場合も、ここ（一番上）に出す
+		const bool inExistingFolder = !folder.empty() && std::find(folders.begin(), folders.end(), folder) != folders.end();
+		if (!inExistingFolder && passFilter(object.name)) {
+			DrawObjectItem(object, selected, onSelect);
+		}
+	}
+	if (Objects().empty()) {
+		ImGui::TextDisabled("(オブジェクト未登録: シーンの ImGuiDraw で Editor::Inspect)");
+	}
+	DrawFolderEditPopup();
+#else
+	(void)selected; (void)passFilter; (void)onSelect;
 #endif // USE_IMGUI
 }
 

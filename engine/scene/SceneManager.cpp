@@ -15,6 +15,7 @@ void SceneManager::Initialize(int startSceneNo) {
 
     // 登録テーブルから生成（どのシーンかはゲーム側が登録済み）
     currentScene = CreateScene(currentSceneNo);
+    ++sceneGeneration_;
 
     if (currentScene) {
         currentScene->Initialize();
@@ -41,6 +42,7 @@ void SceneManager::Update() {
 			//登録テーブルから新しいシーンを生成
 			currentSceneNo = nextSceneNo;
 			currentScene = it->second();
+			++sceneGeneration_;
 			if (currentScene) {
 				currentScene->Initialize();
 			}

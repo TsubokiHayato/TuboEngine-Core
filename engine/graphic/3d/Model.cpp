@@ -60,15 +60,15 @@ void TuboEngine::Model::Initialize(const std::string& directoryPath, const std::
 	instancingFlagBuffer_->Unmap(0, nullptr);
 }
 
-void TuboEngine::Model::Draw() {
+void TuboEngine::Model::Draw(const std::string& textureOverride) {
 	// 頂点バッファをセット
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 
 	// マテリアルバッファをセット
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 
-	// SRVのDescriptorTableの先頭を設定。2はRootParameter[2]である。
-	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::TextureManager::GetInstance()->GetSrvHandleGPU(textureFileName_));
+	// SRVのDescriptorTableの先頭を設定。2はRootParameter[2]である。（Object3d がテクスチャを差し替えていればそちら）
+	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::TextureManager::GetInstance()->GetSrvHandleGPU(textureOverride.empty() ? textureFileName_ : textureOverride));
 	
 	// 共通データ（フラグ=0）をセット (RootParameter 10: b1 in VS)
 	commandList->SetGraphicsRootConstantBufferView(10, instancingFlagBuffer_->GetGPUVirtualAddress());
@@ -77,7 +77,7 @@ void TuboEngine::Model::Draw() {
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 }
 
-void TuboEngine::Model::DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView) {
+void TuboEngine::Model::DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView, const std::string& textureOverride) {
 	// 頂点バッファ（スロット0）とインフルエンス（スロット1）をセット
 	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = {vertexBufferView, influenceBufferView};
 	commandList->IASetVertexBuffers(0, 2, vbvs);
@@ -85,8 +85,8 @@ void TuboEngine::Model::DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBuf
 	// マテリアルバッファをセット
 	commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 
-	// テクスチャをセット
-	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::TextureManager::GetInstance()->GetSrvHandleGPU(textureFileName_));
+	// テクスチャをセット（Object3d がテクスチャを差し替えていればそちら）
+	commandList->SetGraphicsRootDescriptorTable(2, TuboEngine::TextureManager::GetInstance()->GetSrvHandleGPU(textureOverride.empty() ? textureFileName_ : textureOverride));
 
 	// 描画
 	commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);

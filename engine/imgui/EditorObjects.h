@@ -53,6 +53,10 @@ struct EditorObject {
 	std::function<void(const Math::Vector3&)> setScale;
 	std::function<Math::Vector4()> getColor;
 	std::function<void(const Math::Vector4&)> setColor;
+	// テクスチャ（Resources/Textures からのパス）。setTexture は読み込めなければ false
+	std::function<std::string()> getTexture;
+	std::function<bool(const std::string&)> setTexture;
+	std::function<void()> clearTexture; // 元のテクスチャに戻す（Object3d / Animator のみ）
 
 	// Inspector の最後に足す独自の項目
 	std::function<void()> drawExtra;
@@ -94,5 +98,34 @@ void DrawGizmo(EditorObject& object, const Camera& camera, float imageMinX, floa
 /// Gizmo をドラッグ中か（ドラッグ中はゲームへのクリックを気にする場合用）。
 /// </summary>
 bool IsGizmoDragging();
+
+/// <summary>
+/// Hierarchy にオブジェクトをフォルダ付きの木で描く（フォルダの作成・名前変更・削除、ドラッグでフォルダへ移動、
+/// 右クリックで保存）。オブジェクトをクリックすると selected が変わり onSelect が呼ばれる。
+/// </summary>
+void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect);
+/// <summary>
+/// 直前に描いた項目（Hierarchy のシーン名）を「フォルダから出す」ドロップ先にする。
+/// </summary>
+void AcceptDropToRoot();
+
+/// <summary>
+/// 実行中に値が変わったか（シーン開始時 or 最後に保存した時の値と比べる）。
+/// </summary>
+bool IsModified(const EditorObject& object);
+/// <summary>
+/// 今の値を SceneSaveData に保存する（Resources/SceneData/<シーン名>.json）。
+/// </summary>
+bool SaveObject(const EditorObject& object);
+
+/// <summary>
+/// Resources からのパス（Project ウィンドウのパス）を TextureManager に渡す名前にする。
+/// 例: "Resources/Textures/a.png" → "a.png"、"Resources/Models/x/b.png" → "../Models/x/b.png"
+/// </summary>
+std::string ToTextureName(const std::string& resourcePath);
+/// <summary>
+/// 画像ファイルか（拡張子で判定）。
+/// </summary>
+bool IsImagePath(const std::string& path);
 
 } // namespace TuboEngine::Editor

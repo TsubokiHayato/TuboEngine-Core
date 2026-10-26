@@ -51,6 +51,8 @@ public:
 
 	//初期化（開始シーン番号はゲーム側が指定する）
 	void Initialize(int startSceneNo);
+	// シーンを作った回数（シーン切り替え・リロードのたびに増える。保存データの読み直し判定用）
+	uint32_t GetSceneGeneration() const { return sceneGeneration_; }
 	// 現在のシーン番号を取得
 	int GetCurrentSceneNo() const { return currentSceneNo; }
 	// 現在のシーンの登録名を取得（未登録なら "(no name)"）。エディタの Hierarchy 表示用
@@ -102,5 +104,7 @@ private:
 	int currentSceneNo = 0;
 	//遷移リクエスト（-1 = リクエスト無し）。ChangeScene で設定し Update で消化する。
 	int requestedSceneNo_ = -1;
+	//シーンを作った回数
+	uint32_t sceneGeneration_ = 0;
 };
 

@@ -349,6 +349,14 @@ void LevelToggle(const char* label, int count, bool* value, const ImVec4& color)
 
 namespace TuboEngine::Editor {
 
+std::string GetProjectSelectedPath() {
+#ifdef USE_IMGUI
+	return gProject.selected.empty() ? std::string() : ToUtf8(gProject.selected);
+#else
+	return {};
+#endif // USE_IMGUI
+}
+
 void DrawProjectWindow(bool* open) {
 #ifdef USE_IMGUI
 	if (!ImGui::Begin("Project", open)) {
@@ -374,9 +382,13 @@ void DrawProjectWindow(bool* open) {
 	ImGui::SameLine();
 	{
 		// Resources からのパスをボタンで表示し、クリックでそのフォルダへ移動
+		// ※ ループ中に currentDir を書き換えると、回している途中のパスが壊れて落ちる。
+		//    押された先を覚えておき、ループの後で移動する。
 		fs::path accumulated;
+		fs::path navigateTo;
 		int index = 0;
-		for (const fs::path& part : gProject.currentDir) {
+		const fs::path currentDir = gProject.currentDir; // ループ中に変わらないようコピーを回す
+		for (const fs::path& part : currentDir) {
 			accumulated /= part;
 			if (index > 0) {
 				ImGui::SameLine(0.0f, 2.0f);
@@ -385,10 +397,13 @@ void DrawProjectWindow(bool* open) {
 			}
 			ImGui::PushID(index++);
 			if (ImGui::SmallButton(ToUtf8(part).c_str())) {
-				gProject.currentDir = accumulated;
-				gProject.search[0] = '\0';
+				navigateTo = accumulated;
 			}
 			ImGui::PopID();
+		}
+		if (!navigateTo.empty()) {
+			gProject.currentDir = navigateTo;
+			gProject.search[0] = '\0';
 		}
 	}
 	const float searchWidth = 180.0f;

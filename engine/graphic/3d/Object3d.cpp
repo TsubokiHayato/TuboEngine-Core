@@ -208,6 +208,27 @@ void TuboEngine::Object3d::Update() {
 	commandList = TuboEngine::DirectXCommon::GetInstance()->GetCommandList();
 }
 
+bool TuboEngine::Object3d::SetTexture(const std::string& textureName) {
+	if (textureName.empty()) {
+		ClearTexture();
+		return true;
+	}
+	TextureManager::GetInstance()->LoadTexture(textureName);
+	if (!TextureManager::GetInstance()->HasTexture(textureName)) {
+		return false; // 読めないテクスチャを使うと描画で落ちるので差し替えない
+	}
+	textureOverride_ = textureName;
+	return true;
+}
+
+const std::string& TuboEngine::Object3d::GetTexture() const {
+	static const std::string kEmpty;
+	if (!textureOverride_.empty()) {
+		return textureOverride_;
+	}
+	return model_ ? model_->GetTextureName() : kEmpty;
+}
+
 void TuboEngine::Object3d::Draw() {
 
 	// TransformMatrix (b0, VertexShader)
@@ -238,9 +259,9 @@ void TuboEngine::Object3d::Draw() {
 	if (model_ && skinCluster_) {
 		// MatrixPalette (t1, VertexShader)。スキニング用ルートシグネチャのみ param[11] を持つ
 		commandList->SetGraphicsRootShaderResourceView(11, skinCluster_->paletteResource->GetGPUVirtualAddress());
-		model_->DrawSkinned(skinCluster_->influenceBufferView);
+		model_->DrawSkinned(skinCluster_->influenceBufferView, textureOverride_);
 	} else if (model_) {
-		model_->Draw();
+		model_->Draw(textureOverride_);
 	} else {
 		// 3Dモデルが割り当てられていない場合はブレイクさせる
 		assert(0);

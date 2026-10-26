@@ -81,6 +81,11 @@ public:
 	uint32_t GetSrvIndex(const std::string& filePath);
 
 	/// <summary>
+	/// 読み込み済みか（LoadTexture が失敗していないか）。filePath は Resources/Textures からのパス。
+	/// </summary>
+	bool HasTexture(const std::string& filePath) const { return textureDatas.contains(directoryPath_ + filePath); }
+
+	/// <summary>
 	/// SrvHandleGPU を取得する。
 	/// </summary>
 	D3D12_GPU_DESCRIPTOR_HANDLE GetSrvHandleGPU(const std::string& filePath);

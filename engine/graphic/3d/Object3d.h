@@ -235,6 +235,21 @@ public:
 	/// <summary>
 	/// モデルのルートノード行列の代わりに使うローカル行列を設定する（アニメーション用）。
 	/// </summary>
+	/// <summary>
+	/// このオブジェクトだけテクスチャを差し替える（同じモデルを使う他のオブジェクトは変わらない）。
+	/// textureName は Resources/Textures からのパス（例: "player.png"）。読み込めなければ false で何もしない。
+	/// </summary>
+	bool SetTexture(const std::string& textureName);
+	/// <summary>
+	/// SetTexture をやめてモデルのテクスチャに戻す。
+	/// </summary>
+	void ClearTexture() { textureOverride_.clear(); }
+	/// <summary>
+	/// 今のテクスチャ（差し替え中ならそれ、無ければモデルのテクスチャ）。
+	/// </summary>
+	const std::string& GetTexture() const;
+	bool HasTextureOverride() const { return !textureOverride_.empty(); }
+
 	void SetLocalMatrix(const TuboEngine::Math::Matrix4x4& localMatrix) {
 		localMatrix_ = localMatrix;
 		useLocalMatrix_ = true;
@@ -302,6 +317,8 @@ private:
 	// キューブマップのSRVハンドル
 	// デフォルト : ロストック・ラージ空港の4Kキューブマップ
 	std::string cubeMapFilePath_ = "DDS/rostock_laage_airport_4k.dds";
+	// SetTexture で差し替えたテクスチャ（空ならモデルのテクスチャ）
+	std::string textureOverride_;
 
 	// アニメーションで上書きするローカル行列
 	TuboEngine::Math::Matrix4x4 localMatrix_{};

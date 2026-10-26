@@ -31,13 +31,13 @@ public:
 	/// <summary>
 	/// 描画処理
 	/// </summary>
-	void Draw();
+	void Draw(const std::string& textureOverride = "");
 
 	/// <summary>
 	/// スキニング描画処理（スロット1にインフルエンスの頂点バッファを追加でセットする）
 	/// </summary>
 	/// <param name="influenceBufferView">SkinCluster のインフルエンス頂点バッファビュー</param>
-	void DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView);
+	void DrawSkinned(const D3D12_VERTEX_BUFFER_VIEW& influenceBufferView, const std::string& textureOverride = "");
 
 	/// <summary>
 	/// インスタンス描画処理
@@ -94,6 +94,9 @@ public:
 	// rootNodeLocalMatrix
 	Matrix4x4 GetRootNodeLocalMatrix() { return modelData.rootNode.localMatrix; }
 	void SetRootNodeLocalMatrix(const Matrix4x4& matrix) { modelData.rootNode.localMatrix = matrix; }
+
+	// モデルのテクスチャ名（Resources/Textures からのパス）
+	const std::string& GetTextureName() const { return textureFileName_; }
 
 	// モデルデータ（アニメーション・スキニング用）
 	const ModelData& GetModelData() const { return modelData; }

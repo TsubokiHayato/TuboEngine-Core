@@ -581,28 +581,17 @@ void ImGuiManager::DrawHierarchyWindow() {
 	}
 
 	const std::string sceneName = SceneManager::GetInstance()->GetCurrentSceneName();
-	if (ImGui::TreeNodeEx("##scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", sceneName.c_str())) {
-		// シーンが Editor::Inspect で登録したオブジェクト（クリックで Inspector に表示）
-		for (const Editor::EditorObject& object : Editor::GetObjects()) {
-			if (!filter.PassFilter(object.name.c_str())) {
-				continue;
-			}
-			ImGui::PushID(object.name.c_str());
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
-			if (selectedObject_ == object.name) {
-				flags |= ImGuiTreeNodeFlags_Selected;
-			}
-			ImGui::TreeNodeEx("##object", flags, "%s %s", object.is3D ? "[3D]" : "[2D]", object.name.c_str());
-			if (ImGui::IsItemClicked()) {
-				selectedObject_ = object.name;
-				selectedWindow_.clear();
-				focusRequest_ = "Inspector";
-			}
-			ImGui::PopID();
-		}
-		if (Editor::GetObjects().empty()) {
-			ImGui::TextDisabled("(オブジェクト未登録: シーンの ImGuiDraw で Editor::Inspect)");
-		}
+	const bool sceneOpen = ImGui::TreeNodeEx("##scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", sceneName.c_str());
+	// シーン名にオブジェクト / フォルダをドロップすると、フォルダから出す
+	Editor::AcceptDropToRoot();
+	if (sceneOpen) {
+		// シーンが Editor::Inspect で登録したオブジェクト（フォルダ分け・保存。クリックで Inspector に表示）
+		Editor::DrawObjectTree(
+		    selectedObject_, [&](const std::string& name) { return filter.PassFilter(name.c_str()); },
+		    [this] {
+			    selectedWindow_.clear();
+			    focusRequest_ = "Inspector";
+		    });
 		ImGui::Separator();
 		for (const std::string& name : names) {
 			if (!filter.PassFilter(name.c_str())) {

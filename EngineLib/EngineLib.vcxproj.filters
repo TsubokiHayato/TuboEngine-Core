@@ -378,6 +378,9 @@
     <ClCompile Include="..\engine\scene\SceneManager.cpp">
       <Filter>projects\engine\scene</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\scene\SceneSaveData.cpp">
+      <Filter>projects\engine\scene</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\base\Common\SrvManager.cpp">
       <Filter>projects\engine\base\Common</Filter>
     </ClCompile>
@@ -717,6 +720,9 @@
       <Filter>projects\engine\graphic\PSO\Object</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\scene\SceneManager.h">
+      <Filter>projects\engine\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\scene\SceneSaveData.h">
       <Filter>projects\engine\scene</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\base\Common\SrvManager.h">
