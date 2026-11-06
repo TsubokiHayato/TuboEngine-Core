@@ -273,6 +273,9 @@
     <ClCompile Include="..\engine\camera\Camera.cpp">
       <Filter>projects\engine\camera</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\camera\UniversalCamera.cpp">
+      <Filter>projects\engine\camera</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\camera\DebugCamera.cpp">
       <Filter>projects\engine\camera</Filter>
     </ClCompile>
@@ -594,6 +597,9 @@
       <Filter>projects\engine\audio</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\camera\Camera.h">
+      <Filter>projects\engine\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\camera\UniversalCamera.h">
       <Filter>projects\engine\camera</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\camera\DebugCamera.h">

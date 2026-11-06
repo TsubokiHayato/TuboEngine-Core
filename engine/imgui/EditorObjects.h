@@ -37,6 +37,17 @@ class Camera;
 namespace TuboEngine::Editor {
 
 /// <summary>
+/// Timeline でキーを打てる追加の項目（カメラの注視点・画角など、位置/回転/拡縮/色以外の値）。
+/// </summary>
+struct KeyableProperty {
+	std::string name;   // トラック名（例: "camera:fov"）。KeyframeClip のプロパティ名になる
+	std::string label;  // Timeline に出す名前
+	int components = 3; // 使う要素数（1〜4）
+	std::function<Math::Vector4()> get;
+	std::function<void(const Math::Vector4&)> set;
+};
+
+/// <summary>
 /// エディタに見せるオブジェクト1個分（値の読み書きは関数で行う）。
 /// </summary>
 struct EditorObject {
@@ -63,6 +74,9 @@ struct EditorObject {
 
 	// ボーンを持つオブジェクト（Animator）なら設定される。Inspector の Bones 欄・Timeline のボーンのキーに使う
 	Animator* animator = nullptr;
+
+	// Timeline でキーを打てる追加の項目（UniversalCamera のカメラ位置・注視点・画角など）
+	std::vector<KeyableProperty> extraProperties;
 };
 
 // --- 登録（シーンの ImGuiDraw から毎フレーム呼ぶ）---

@@ -5,10 +5,12 @@
 namespace TuboEngine {
 Camera::Camera()
 
+    // Transform の並びは { scale, rotate, translate }。
+    // （以前は { 0, 0, 1 } の順で渡していて scale が 0 になり、setScale を呼ばないと行列が NaN になっていた）
     : transform_({
+          {1.0f, 1.0f, 1.0f},
           {0.0f, 0.0f, 0.0f},
-          {0.0f, 0.0f, 0.0f},
-          {1.0f, 1.0f, 1.0f}
+          {0.0f, 0.0f, 0.0f}
 }),
       fovY_(0.45f), aspect_(float(TuboEngine::WinApp::GetInstance()->GetClientWidth()) / float(TuboEngine::WinApp::GetInstance()->GetClientHeight())), nearClip_(0.1f), farClip_(100.0f),
       worldMatrix_(MakeAffineMatrix(transform_.scale, transform_.rotate, transform_.translate)), viewMatrix_(Inverse(worldMatrix_)),

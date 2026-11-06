@@ -40,6 +40,7 @@ struct TimelineState {
 	bool keyScale = true;
 	bool keyColor = false;
 	bool keyBone = true; // 選択中のボーン（Animator のみ）
+	std::map<std::string, bool> keyExtra; // 追加の項目（カメラなど）ごとのキーを打つか
 	Easing::Type newKeyEase = Easing::Type::InOutSine;
 	// 右クリックしたキー
 	int popupTrack = -1;
@@ -61,7 +62,12 @@ std::string SafeFileName(const std::string& name) {
 	return out;
 }
 
-std::string PropertyLabel(const std::string& property) {
+std::string PropertyLabel(const std::string& property, const EditorObject* target = nullptr) {
+	if (target) {
+		for (const KeyableProperty& extra : target->extraProperties) {
+			if (extra.name == property) return extra.label;
+		}
+	}
 	if (property == "position") return "位置";
 	if (property == "rotation") return "回転";
 	if (property == "scale") return "拡縮";
@@ -81,6 +87,9 @@ bool ReadProperty(const EditorObject& e, const std::string& property, Math::Vect
 	if (property == "rotation" && e.getRotation) { from3(e.getRotation()); return true; }
 	if (property == "scale" && e.getScale) { from3(e.getScale()); return true; }
 	if (property == "color" && e.getColor) { out = e.getColor(); return true; }
+	for (const KeyableProperty& extra : e.extraProperties) {
+		if (extra.name == property && extra.get) { out = extra.get(); return true; }
+	}
 	std::string joint, component;
 	QuaternionTransform local;
 	if (e.animator && ParseBoneTrackName(property, joint, component) && e.animator->GetJointLocal(joint, local)) {
@@ -102,6 +111,10 @@ void ApplyClip(EditorObject& e, const KeyframeClip& clip, float time) {
 		else if (t.property == "rotation" && e.setRotation) e.setRotation(v3);
 		else if (t.property == "scale" && e.setScale) e.setScale(v3);
 		else if (t.property == "color" && e.setColor) e.setColor(v);
+		else if (auto extra = std::find_if(e.extraProperties.begin(), e.extraProperties.end(), [&](const KeyableProperty& p) { return p.name == t.property; });
+		         extra != e.extraProperties.end()) {
+			if (extra->set) extra->set(v);
+		}
 		else if (e.animator) {
 			std::string joint, component;
 			if (ParseBoneTrackName(t.property, joint, component)) {
@@ -131,6 +144,12 @@ void InsertKeys(EditorObject& e, KeyframeClip& clip, TimelineState& s) {
 		Math::Vector4 v;
 		if (enabled && ReadProperty(e, property, v)) {
 			clip.SetKey(property, s.time, v, s.newKeyEase);
+		}
+	}
+	for (const KeyableProperty& extra : e.extraProperties) {
+		const auto it = s.keyExtra.find(extra.name);
+		if ((it == s.keyExtra.end() || it->second) && extra.get) {
+			clip.SetKey(extra.name, s.time, extra.get(), s.newKeyEase);
 		}
 	}
 	const std::string& bone = SelectedBone(e.name);
@@ -222,6 +241,11 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 	if (target->getRotation) { ImGui::Checkbox("回転", &s.keyRotation); ImGui::SameLine(); }
 	if (target->getScale) { ImGui::Checkbox("拡縮", &s.keyScale); ImGui::SameLine(); }
 	if (target->getColor) { ImGui::Checkbox("色", &s.keyColor); ImGui::SameLine(); }
+	for (const KeyableProperty& extra : target->extraProperties) {
+		bool& on = s.keyExtra.try_emplace(extra.name, true).first->second;
+		ImGui::Checkbox((extra.label + "##" + extra.name).c_str(), &on);
+		ImGui::SameLine();
+	}
 	if (target->animator) {
 		const std::string& bone = SelectedBone(target->name);
 		const std::string label = "ボーン: " + (bone.empty() ? std::string("(Inspector の Bones で選択)") : bone);
@@ -342,7 +366,7 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 		}
 		{
 			// 長いボーン名は欄の幅で切る
-			const std::string label = PropertyLabel(track.property);
+			const std::string label = PropertyLabel(track.property, target);
 			dl->PushClipRect(ImVec2(canvasPos.x, rowTop), ImVec2(canvasPos.x + labelWidth, rowTop + rowHeight), true);
 			dl->AddText(ImVec2(canvasPos.x + 6.0f, cy - ImGui::GetFontSize() * 0.5f), IM_COL32(210, 210, 210, 255), label.c_str());
 			dl->PopClipRect();
@@ -458,7 +482,7 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 		Keyframe& key = track.keys[s.selectedKey];
 		ImGui::SeparatorText("選択中のキー");
 		ImGui::BeginGroup();
-		ImGui::Text("%s  #%d", PropertyLabel(track.property).c_str(), s.selectedKey);
+		ImGui::Text("%s  #%d", PropertyLabel(track.property, target).c_str(), s.selectedKey);
 		ImGui::SetNextItemWidth(120.0f);
 		if (ImGui::DragFloat("時間##key", &key.time, 0.01f, 0.0f, clip.length, "%.3f s")) {
 			track.Sort();
@@ -482,6 +506,9 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 					key.value = {sr * cp * cy - cr * sp * sy, cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy, cr * cp * cy + sr * sp * sy};
 					timeChanged = true;
 				}
+			} else if (auto extra = std::find_if(target->extraProperties.begin(), target->extraProperties.end(), [&](const KeyableProperty& p) { return p.name == track.property; });
+			           extra != target->extraProperties.end() && extra->components == 1) {
+				if (ImGui::DragFloat("値", &key.value.x, 0.1f)) timeChanged = true;
 			} else if (track.property == "color") {
 				if (ImGui::ColorEdit4("値", &key.value.x)) timeChanged = true;
 			} else {

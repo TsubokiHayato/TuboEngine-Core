@@ -199,6 +199,7 @@
     <ClCompile Include="..\engine\audio\Audio.cpp" />
     <ClCompile Include="..\engine\audio\AudioCommon.cpp" />
     <ClCompile Include="..\engine\camera\Camera.cpp" />
+    <ClCompile Include="..\engine\camera\UniversalCamera.cpp" />
     <ClCompile Include="..\engine\camera\DebugCamera.cpp" />
     <ClCompile Include="..\engine\leakChecker\D3DResourceLeakChecker.cpp" />
     <ClCompile Include="..\engine\base\Common\DirectXCommon.cpp" />
@@ -303,6 +304,7 @@
     <ClInclude Include="..\engine\audio\Audio.h" />
     <ClInclude Include="..\engine\audio\AudioCommon.h" />
     <ClInclude Include="..\engine\camera\Camera.h" />
+    <ClInclude Include="..\engine\camera\UniversalCamera.h" />
     <ClInclude Include="..\engine\camera\DebugCamera.h" />
     <ClInclude Include="..\engine\leakChecker\D3DResourceLeakChecker.h" />
     <ClInclude Include="..\engine\base\Common\DirectXCommon.h" />

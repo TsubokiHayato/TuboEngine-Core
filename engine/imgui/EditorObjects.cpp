@@ -755,7 +755,8 @@ void DrawObjectItem(EditorObject& object, std::string& selected, const std::func
 	}
 	const bool modified = IsModified(object);
 	const bool saved = SceneSaveData::Find(object.name) != nullptr;
-	ImGui::TreeNodeEx("##object", flags, "%s %s%s%s", object.is3D ? "[3D]" : "[2D]", object.name.c_str(), modified ? " *" : "", saved && !modified ? "  (保存済)" : "");
+	const char* kind = object.is3D ? "[3D]" : (std::strcmp(object.type, "Camera") == 0 ? "[Cam]" : "[2D]");
+	ImGui::TreeNodeEx("##object", flags, "%s %s%s%s", kind, object.name.c_str(), modified ? " *" : "", saved && !modified ? "  (保存済)" : "");
 	// 押した時は選択だけ。Inspector を前面に出すのは「ドラッグせずに離した時」
 	// （押した瞬間にフォーカスを移すと、ImGui がこの項目のドラッグを始められなくなる）
 	if (ImGui::IsItemClicked()) {
