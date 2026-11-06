@@ -100,10 +100,31 @@ void DrawGizmo(EditorObject& object, const Camera& camera, float imageMinX, floa
 bool IsGizmoDragging();
 
 /// <summary>
-/// Hierarchy にオブジェクトをフォルダ付きの木で描く（フォルダの作成・名前変更・削除、ドラッグでフォルダへ移動、
-/// 右クリックで保存）。オブジェクトをクリックすると selected が変わり onSelect が呼ばれる。
+/// Hierarchy にオブジェクトとデバッグウィンドウ（タブ）をフォルダ付きの木で描く
+/// （フォルダの作成・名前変更・削除、ドラッグ / 右クリックでフォルダへ移動、右クリックで保存）。
+/// オブジェクトをクリックすると selected が変わり、ドラッグせずに離すと onSelect が呼ばれる。
+/// windowNames / drawWindowItem を渡すと、タブもフォルダの中に表示する（1項目の描画は呼び出し側が行う）。
 /// </summary>
-void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect);
+void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect,
+                    const std::vector<std::string>& windowNames = {}, const std::function<void(const std::string&)>& drawWindowItem = nullptr);
+
+/// <summary>
+/// デバッグウィンドウ（タブ）をフォルダに入れる時のキー（オブジェクト名と区別するため "window:" を付ける）。
+/// </summary>
+std::string WindowFolderKey(const std::string& windowName);
+/// <summary>
+/// 直前に描いた項目を、ウィンドウ（タブ）のドラッグ元にする（Hierarchy のタブ一覧用）。
+/// </summary>
+void BeginWindowDragSource(const std::string& windowName);
+/// <summary>
+/// 右クリックメニューの中で呼ぶ:「フォルダへ移動 ▸」「フォルダから出す」。key はオブジェクト名か WindowFolderKey(タブ名)。
+/// </summary>
+void DrawMoveToFolderMenu(const std::string& key);
+/// <summary>
+/// 直前の項目が「ドラッグせずにクリックして離された」か。
+/// 押した瞬間に別のウィンドウへフォーカスを移すと ImGui がドラッグを始められなくなるので、選択の確定はこれで行う。
+/// </summary>
+bool IsItemClickReleased();
 /// <summary>
 /// 直前に描いた項目（Hierarchy のシーン名）を「フォルダから出す」ドロップ先にする。
 /// </summary>

@@ -586,17 +586,8 @@ void ImGuiManager::DrawHierarchyWindow() {
 	Editor::AcceptDropToRoot();
 	if (sceneOpen) {
 		// シーンが Editor::Inspect で登録したオブジェクト（フォルダ分け・保存。クリックで Inspector に表示）
-		Editor::DrawObjectTree(
-		    selectedObject_, [&](const std::string& name) { return filter.PassFilter(name.c_str()); },
-		    [this] {
-			    selectedWindow_.clear();
-			    focusRequest_ = "Inspector";
-		    });
-		ImGui::Separator();
-		for (const std::string& name : names) {
-			if (!filter.PassFilter(name.c_str())) {
-				continue;
-			}
+		// タブ（デバッグウィンドウ）1つ分の描画。フォルダの中でも外でも同じものを使う
+		auto drawWindowItem = [&](const std::string& name) {
 			ImGui::PushID(name.c_str());
 			// BeginPanel で登録されたパネルは表示/非表示を切り替えられる
 			auto it = panelOpen_.find(name);
@@ -625,17 +616,34 @@ void ImGuiManager::DrawHierarchyWindow() {
 			if (hidden) {
 				ImGui::PopStyleColor();
 			}
-			// クリックで選択 → そのウィンドウを(非表示なら表示して)前面へ
+			// ドラッグでフォルダへ入れられる
+			Editor::BeginWindowDragSource(name);
+			// 押した時は選択だけ。そのウィンドウを（非表示なら表示して）前面に出すのは、ドラッグせずに離した時
+			// （押した瞬間にフォーカスを移すと、ImGui がこの項目のドラッグを始められなくなる）
 			if (ImGui::IsItemClicked()) {
 				selectedWindow_ = name;
 				selectedObject_.clear();
+			}
+			if (Editor::IsItemClickReleased()) {
 				if (open) {
 					*open = true;
 				}
 				focusRequest_ = name;
 			}
+			if (ImGui::BeginPopupContextItem("##windowMenu")) {
+				Editor::DrawMoveToFolderMenu(Editor::WindowFolderKey(name));
+				ImGui::EndPopup();
+			}
 			ImGui::PopID();
-		}
+		};
+
+		Editor::DrawObjectTree(
+		    selectedObject_, [&](const std::string& name) { return filter.PassFilter(name.c_str()); },
+		    [this] {
+			    selectedWindow_.clear();
+			    focusRequest_ = "Inspector";
+		    },
+		    names, drawWindowItem);
 		ImGui::TreePop();
 	}
 

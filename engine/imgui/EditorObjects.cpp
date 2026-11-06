@@ -588,6 +588,8 @@ void DrawGizmo(EditorObject& e, const Camera& camera, float minX, float minY, fl
 namespace {
 constexpr const char* kObjectPayload = "EDITOR_OBJECT";
 constexpr const char* kFolderPayload = "EDITOR_FOLDER";
+constexpr const char* kWindowPayload = "EDITOR_WINDOW";
+constexpr const char* kWindowKeyPrefix = "window:";
 
 std::string LeafName(const std::string& path) {
 	const size_t slash = path.rfind('/');
@@ -627,6 +629,9 @@ void AcceptDropInto(const std::string& folder) {
 	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(kObjectPayload)) {
 		SceneSaveData::SetFolder(static_cast<const char*>(p->Data), folder);
 	}
+	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(kWindowPayload)) {
+		SceneSaveData::SetFolder(std::string(kWindowKeyPrefix) + static_cast<const char*>(p->Data), folder);
+	}
 	if (const ImGuiPayload* p = ImGui::AcceptDragDropPayload(kFolderPayload)) {
 		const std::string source = static_cast<const char*>(p->Data);
 		const std::string dest = folder.empty() ? LeafName(source) : folder + "/" + LeafName(source);
@@ -644,9 +649,13 @@ void DrawObjectItem(EditorObject& object, std::string& selected, const std::func
 	const bool modified = IsModified(object);
 	const bool saved = SceneSaveData::Find(object.name) != nullptr;
 	ImGui::TreeNodeEx("##object", flags, "%s %s%s%s", object.is3D ? "[3D]" : "[2D]", object.name.c_str(), modified ? " *" : "", saved && !modified ? "  (保存済)" : "");
+	// 押した時は選択だけ。Inspector を前面に出すのは「ドラッグせずに離した時」
+	// （押した瞬間にフォーカスを移すと、ImGui がこの項目のドラッグを始められなくなる）
 	if (ImGui::IsItemClicked()) {
 		selected = object.name;
-		if (onSelect) onSelect();
+	}
+	if (IsItemClickReleased() && onSelect) {
+		onSelect();
 	}
 	if (modified && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
 		ImGui::SetTooltip("実行中に変更あり。右クリック →「この状態を保存」で次回も使えます");
@@ -664,16 +673,23 @@ void DrawObjectItem(EditorObject& object, std::string& selected, const std::func
 			SceneSaveData::Remove(object.name);
 		}
 		ImGui::Separator();
-		if (ImGui::MenuItem("フォルダから出す", nullptr, false, !SceneSaveData::GetFolder(object.name).empty())) {
-			SceneSaveData::SetFolder(object.name, "");
-		}
+		DrawMoveToFolderMenu(object.name);
 		ImGui::EndPopup();
 	}
 	ImGui::PopID();
 }
 
-// フォルダ1つ分（中のフォルダ → 中のオブジェクトの順）
-void DrawFolder(const std::string& folder, std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect) {
+// 木を描くのに必要なもの一式
+struct TreeContext {
+	std::string& selected;
+	const std::function<bool(const std::string&)>& passFilter;
+	const std::function<void()>& onSelect;
+	const std::vector<std::string>& windowNames;
+	const std::function<void(const std::string&)>& drawWindowItem;
+};
+
+// フォルダ1つ分（中のフォルダ → 中のオブジェクト → 中のタブの順）
+void DrawFolder(const std::string& folder, const TreeContext& ctx) {
 	ImGui::PushID(folder.c_str());
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.82f, 0.45f, 1.0f));
 	const bool open = ImGui::TreeNodeEx("##folder", ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen, "[Folder] %s", LeafName(folder).c_str());
@@ -694,13 +710,21 @@ void DrawFolder(const std::string& folder, std::string& selected, const std::fun
 		// 直下のフォルダ
 		for (const std::string& child : std::vector<std::string>(SceneSaveData::GetFolders())) {
 			if (ParentOf(child) == folder) {
-				DrawFolder(child, selected, passFilter, onSelect);
+				DrawFolder(child, ctx);
 			}
 		}
 		// 直下のオブジェクト
 		for (EditorObject& object : Objects()) {
-			if (SceneSaveData::GetFolder(object.name) == folder && passFilter(object.name)) {
-				DrawObjectItem(object, selected, onSelect);
+			if (SceneSaveData::GetFolder(object.name) == folder && ctx.passFilter(object.name)) {
+				DrawObjectItem(object, ctx.selected, ctx.onSelect);
+			}
+		}
+		// 直下のタブ（デバッグウィンドウ）
+		if (ctx.drawWindowItem) {
+			for (const std::string& window : ctx.windowNames) {
+				if (SceneSaveData::GetFolder(WindowFolderKey(window)) == folder && ctx.passFilter(window)) {
+					ctx.drawWindowItem(window);
+				}
 			}
 		}
 		ImGui::TreePop();
@@ -754,8 +778,56 @@ void AcceptDropToRoot() {
 #endif // USE_IMGUI
 }
 
-void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect) {
+std::string WindowFolderKey(const std::string& windowName) { return std::string("window:") + windowName; }
+
+bool IsItemClickReleased() {
 #ifdef USE_IMGUI
+	if (!ImGui::IsItemDeactivated() || !ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+		return false;
+	}
+	const ImGuiIO& io = ImGui::GetIO();
+	return io.MouseDragMaxDistanceSqr[0] < io.MouseDragThreshold * io.MouseDragThreshold; // ドラッグしていない
+#else
+	return false;
+#endif // USE_IMGUI
+}
+
+void BeginWindowDragSource(const std::string& windowName) {
+#ifdef USE_IMGUI
+	if (ImGui::BeginDragDropSource()) {
+		ImGui::SetDragDropPayload(kWindowPayload, windowName.c_str(), windowName.size() + 1);
+		ImGui::Text("%s", windowName.c_str());
+		ImGui::EndDragDropSource();
+	}
+#else
+	(void)windowName;
+#endif // USE_IMGUI
+}
+
+void DrawMoveToFolderMenu(const std::string& key) {
+#ifdef USE_IMGUI
+	const std::string current = SceneSaveData::GetFolder(key);
+	const std::vector<std::string> folders = SceneSaveData::GetFolders();
+	if (ImGui::BeginMenu("フォルダへ移動", !folders.empty())) {
+		for (const std::string& folder : folders) {
+			if (ImGui::MenuItem(folder.c_str(), nullptr, folder == current)) {
+				SceneSaveData::SetFolder(key, folder);
+			}
+		}
+		ImGui::EndMenu();
+	}
+	if (ImGui::MenuItem("フォルダから出す", nullptr, false, !current.empty())) {
+		SceneSaveData::SetFolder(key, "");
+	}
+#else
+	(void)key;
+#endif // USE_IMGUI
+}
+
+void DrawObjectTree(std::string& selected, const std::function<bool(const std::string&)>& passFilter, const std::function<void()>& onSelect,
+                    const std::vector<std::string>& windowNames, const std::function<void(const std::string&)>& drawWindowItem) {
+#ifdef USE_IMGUI
+	const TreeContext ctx{selected, passFilter, onSelect, windowNames, drawWindowItem};
 	// 上段: フォルダ作成 / 変更をまとめて保存
 	if (ImGui::SmallButton("+ フォルダ")) {
 		BeginFolderEdit("", true);
@@ -775,27 +847,42 @@ void DrawObjectTree(std::string& selected, const std::function<bool(const std::s
 	}
 	if (modifiedCount == 0) ImGui::EndDisabled();
 
-	// フォルダ（一番上の階層）→ フォルダに入っていないオブジェクト
+	// フォルダ（一番上の階層）→ フォルダに入っていないオブジェクト → フォルダに入っていないタブ
 	for (const std::string& folder : std::vector<std::string>(SceneSaveData::GetFolders())) {
 		if (ParentOf(folder).empty()) {
-			DrawFolder(folder, selected, passFilter, onSelect);
+			DrawFolder(folder, ctx);
 		}
 	}
-	const auto& folders = SceneSaveData::GetFolders();
+	const std::vector<std::string> folders = SceneSaveData::GetFolders();
+	// 入っているフォルダが消されていた場合も、一番上に出す
+	auto isInExistingFolder = [&](const std::string& key) {
+		const std::string folder = SceneSaveData::GetFolder(key);
+		return !folder.empty() && std::find(folders.begin(), folders.end(), folder) != folders.end();
+	};
 	for (EditorObject& object : Objects()) {
-		const std::string folder = SceneSaveData::GetFolder(object.name);
-		// 入っているフォルダが消されていた場合も、ここ（一番上）に出す
-		const bool inExistingFolder = !folder.empty() && std::find(folders.begin(), folders.end(), folder) != folders.end();
-		if (!inExistingFolder && passFilter(object.name)) {
+		if (!isInExistingFolder(object.name) && passFilter(object.name)) {
 			DrawObjectItem(object, selected, onSelect);
 		}
 	}
 	if (Objects().empty()) {
 		ImGui::TextDisabled("(オブジェクト未登録: シーンの ImGuiDraw で Editor::Inspect)");
 	}
+	if (drawWindowItem) {
+		bool separated = false;
+		for (const std::string& window : windowNames) {
+			if (isInExistingFolder(WindowFolderKey(window)) || !passFilter(window)) {
+				continue;
+			}
+			if (!separated) {
+				ImGui::Separator();
+				separated = true;
+			}
+			drawWindowItem(window);
+		}
+	}
 	DrawFolderEditPopup();
 #else
-	(void)selected; (void)passFilter; (void)onSelect;
+	(void)selected; (void)passFilter; (void)onSelect; (void)windowNames; (void)drawWindowItem;
 #endif // USE_IMGUI
 }
 
