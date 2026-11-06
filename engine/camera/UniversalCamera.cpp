@@ -34,12 +34,12 @@ UniversalCamera::UniversalCamera() {
 	behind.lookAhead = 1.0f;
 	behind.followSpeed = 14.0f;
 	behind.fovDeg = 28.0f;
-	// 後ろ斜め
+	// 頭上後ろ斜め: 頭上の後ろから斜め 45°（真上 = 90°）で見下ろす
 	Preset& diagonal = GetPreset(ViewMode::BehindDiagonal);
-	diagonal.distance = 7.0f;
-	diagonal.pitchDeg = 25.0f;
-	diagonal.yawOffsetDeg = 40.0f;
-	diagonal.lookHeight = 1.2f;
+	diagonal.distance = 9.0f;
+	diagonal.pitchDeg = 45.0f;
+	diagonal.yawOffsetDeg = 0.0f;
+	diagonal.lookHeight = 1.0f;
 	diagonal.followSpeed = 8.0f;
 	diagonal.fovDeg = 26.0f;
 	// 見下ろし: 高い所から。ターゲットが回ってもカメラは回らない
@@ -55,7 +55,7 @@ UniversalCamera::UniversalCamera() {
 const char* UniversalCamera::ViewModeName(ViewMode mode) {
 	switch (mode) {
 	case ViewMode::Behind: return "真後ろ";
-	case ViewMode::BehindDiagonal: return "後ろ斜め";
+	case ViewMode::BehindDiagonal: return "頭上後ろ斜め";
 	case ViewMode::TopDown: return "見下ろし";
 	default: return "?";
 	}
@@ -477,7 +477,7 @@ void UniversalCamera::DrawImGui(const char* windowName) {
 	ImGui::SeparatorText((std::string("視点の設定: ") + ViewModeName(viewMode_)).c_str());
 	Preset& p = GetPreset(viewMode_);
 	ImGui::DragFloat("距離", &p.distance, 0.05f, 0.1f, 100.0f);
-	ImGui::DragFloat("見下ろす角度 (deg)", &p.pitchDeg, 0.5f, -89.0f, 89.0f);
+	ImGui::DragFloat("見下ろす角度 (deg・真上=90)", &p.pitchDeg, 0.5f, -89.0f, 89.0f);
 	ImGui::DragFloat("横にずらす角度 (deg)", &p.yawOffsetDeg, 0.5f, -180.0f, 180.0f);
 	ImGui::DragFloat("注視点の高さ", &p.lookHeight, 0.02f);
 	ImGui::DragFloat("肩越し", &p.shoulder, 0.02f);

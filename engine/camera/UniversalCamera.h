@@ -40,7 +40,7 @@ public:
 	/// </summary>
 	enum class ViewMode {
 		Behind,         // 真後ろ（アーマード・コア風。肩越し・強めの追従）
-		BehindDiagonal, // 後ろ斜め
+		BehindDiagonal, // 頭上後ろ斜め（頭上の後ろから 45° で見下ろす。真上 = 90°）
 		TopDown,        // 見下ろし（ターゲットの向きに関係なくワールドに固定）
 		Count,
 	};
@@ -50,7 +50,7 @@ public:
 	/// </summary>
 	struct Preset {
 		float distance = 6.0f;     // ターゲットからの距離
-		float pitchDeg = 15.0f;    // 見下ろす角度（度）
+		float pitchDeg = 15.0f;    // 見下ろす角度（度）。0 = 水平、90 = 真上から
 		float yawOffsetDeg = 0.0f; // ターゲットの真後ろからずらす角度（度）
 		float lookHeight = 1.5f;   // 注視点の高さ（ターゲットの位置から上へ）
 		float shoulder = 0.0f;     // 注視点の横ずれ（肩越し）
