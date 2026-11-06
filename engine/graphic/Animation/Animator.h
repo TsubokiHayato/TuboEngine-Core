@@ -5,6 +5,7 @@
 #include "SkinCluster.h"
 #include "GameTime.h"
 #include <functional>
+#include <optional>
 #include <map>
 #include <memory>
 #include <string>
@@ -143,6 +144,35 @@ public:
 	float GetNormalizedTime() const { return current_->duration > 0.0f ? animationTime_ / current_->duration : 0.0f; }
 
 	///-------------------------------------------------------------------------------------------------
+	/// ボーンを個別に動かす（Timeline のボーンのキー・ポーズ付け用）
+	///   上書きしたボーンはアニメーションの結果より優先される（上書きしていないボーンはアニメーションのまま）。
+	///   値はボーンのローカル（親ボーン基準）の位置・回転・拡縮。
+
+	void SetJointPosition(const std::string& jointName, const TuboEngine::Math::Vector3& position);
+	void SetJointRotation(const std::string& jointName, const TuboEngine::Math::Quaternion& rotation);
+	void SetJointScale(const std::string& jointName, const TuboEngine::Math::Vector3& scale);
+	/// <summary>
+	/// ボーンの上書きをやめる（アニメーションに戻す）。
+	/// </summary>
+	void ClearJointOverride(const std::string& jointName);
+	/// <summary>
+	/// 全ボーンの上書きをやめる。
+	/// </summary>
+	void ClearJointOverrides() { jointOverrides_.clear(); }
+	/// <summary>
+	/// 上書き中か。
+	/// </summary>
+	bool IsJointOverridden(const std::string& jointName) const;
+	/// <summary>
+	/// 上書き中のボーン名の一覧。
+	/// </summary>
+	std::vector<std::string> GetOverriddenJointNames() const;
+	/// <summary>
+	/// 今のボーンのローカルの姿勢（アニメーション＋上書きの結果）。Update の後に呼ぶ。無ければ false。
+	/// </summary>
+	bool GetJointLocal(const std::string& jointName, QuaternionTransform& out) const;
+
+	///-------------------------------------------------------------------------------------------------
 	/// ボーン（武器を手に持たせる・エフェクトを足元に出す等）
 
 	/// <summary>
@@ -201,6 +231,16 @@ private:
 	/// [begin, end] の範囲（逆再生なら [end, begin]）のイベントを呼ぶ。
 	/// </summary>
 	void FireEventsInRange(float begin, float end, bool includeBegin);
+
+	// ボーンの上書き（無い要素はアニメーションのまま）
+	struct JointOverride {
+		std::optional<TuboEngine::Math::Vector3> position;
+		std::optional<TuboEngine::Math::Quaternion> rotation;
+		std::optional<TuboEngine::Math::Vector3> scale;
+	};
+	// ジョイント番号 → 上書き
+	std::map<int32_t, JointOverride> jointOverrides_;
+	JointOverride* OverrideFor(const std::string& jointName);
 
 	// アニメーションイベント1個分
 	struct AnimationEvent {

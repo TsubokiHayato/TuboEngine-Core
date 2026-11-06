@@ -18,6 +18,7 @@
 #include <cstring>
 #include <filesystem>
 #include <map>
+#include <numbers>
 
 namespace TuboEngine::Editor {
 
@@ -178,6 +179,7 @@ void Inspect(const std::string& name, Animator* a, std::function<void()> extra) 
 	e.getTexture = [a] { return a->GetObject3d()->GetTexture(); };
 	e.setTexture = [a](const std::string& name) { return a->GetObject3d()->SetTexture(name); };
 	e.clearTexture = [a] { a->GetObject3d()->ClearTexture(); };
+	e.animator = a;
 	e.drawExtra = [a, extra = std::move(extra)] {
 		ImGui::SeparatorText("Animation");
 		ImGui::Text("%s  %.2f / %.2f s", a->GetCurrentAnimationName().c_str(), a->GetAnimationTime(), a->GetDuration());
@@ -286,6 +288,11 @@ bool IsImagePath(const std::string& path) {
 	return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".dds" || ext == ".bmp" || ext == ".tga";
 }
 
+std::string& SelectedBone(const std::string& objectName) {
+	static std::map<std::string, std::string> selected;
+	return selected[objectName];
+}
+
 bool IsModified(const EditorObject& e) {
 	const Baselines& baselines = BaselineStore();
 	auto it = baselines.values.find(e.name);
@@ -355,6 +362,84 @@ void DrawTextureField(EditorObject& e) {
 	if (!lastError.empty() && lastErrorObject == e.name) {
 		ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "%s", lastError.c_str());
 	}
+}
+
+// オイラー角（度）⇔ クォータニオン（Quaternion::ToEuler と同じ順番: Z → Y → X）
+Math::Quaternion EulerDegreesToQuaternion(const Math::Vector3& deg) {
+	const float hx = deg.x * kDegToRad * 0.5f, hy = deg.y * kDegToRad * 0.5f, hz = deg.z * kDegToRad * 0.5f;
+	const float cr = std::cos(hx), sr = std::sin(hx), cp = std::cos(hy), sp = std::sin(hy), cy = std::cos(hz), sy = std::sin(hz);
+	return {sr * cp * cy - cr * sp * sy, cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy, cr * cp * cy + sr * sp * sy};
+}
+Math::Vector3 QuaternionToEulerDegrees(const Math::Quaternion& q) {
+	const Math::Vector3 r = q.ToEuler();
+	return {r.x * kRadToDeg, r.y * kRadToDeg, r.z * kRadToDeg};
+}
+
+// Bones 欄: ボーンの一覧（階層つき）→ 選んだボーンの位置・回転・拡縮を上書き
+void DrawBonesSection(EditorObject& e) {
+	Animator* animator = e.animator;
+	const Skeleton& skeleton = animator->GetSkeleton();
+	std::string& selected = SelectedBone(e.name);
+
+	static char filter[64] = "";
+	ImGui::SetNextItemWidth(-FLT_MIN);
+	ImGui::InputTextWithHint("##boneFilter", "ボーンを検索", filter, sizeof(filter));
+	const std::string word = filter;
+
+	// 一覧（親が先に並んでいるので、親の数で字下げする）
+	if (ImGui::BeginChild("##boneList", ImVec2(0.0f, 170.0f), ImGuiChildFlags_Borders)) {
+		for (const Joint& joint : skeleton.joints) {
+			if (!word.empty() && joint.name.find(word) == std::string::npos) {
+				continue;
+			}
+			int depth = 0;
+			for (std::optional<int32_t> p = joint.parent; p; p = skeleton.joints[*p].parent) {
+				++depth;
+			}
+			const bool overridden = animator->IsJointOverridden(joint.name);
+			char label[256];
+			std::snprintf(label, sizeof(label), "%*s%s%s##%d", word.empty() ? depth * 2 : 0, "", joint.name.c_str(), overridden ? "  (上書き)" : "", joint.index);
+			if (ImGui::Selectable(label, selected == joint.name)) {
+				selected = joint.name;
+			}
+		}
+	}
+	ImGui::EndChild();
+	ImGui::TextDisabled("(上書き) = アニメーションより優先して、この値で動かしているボーン");
+
+	QuaternionTransform local;
+	if (!selected.empty() && animator->GetJointLocal(selected, local)) {
+		ImGui::SeparatorText(selected.c_str());
+		// ドラッグ中はオイラー角を覚えておく（毎回クォータニオンから戻すと値が飛ぶため）
+		static std::string editingKey;
+		static Math::Vector3 editingEuler{};
+		const std::string key = e.name + "/" + selected;
+		Math::Vector3 euler = (editingKey == key) ? editingEuler : QuaternionToEulerDegrees(local.rotate);
+		if (ImGui::DragFloat3("Rotation (deg)##bone", &euler.x, 0.5f)) {
+			editingKey = key;
+			editingEuler = euler;
+			animator->SetJointRotation(selected, EulerDegreesToQuaternion(euler));
+		}
+		if (!ImGui::IsItemActive() && editingKey == key) {
+			editingKey.clear();
+		}
+		Math::Vector3 position = local.translate;
+		if (ImGui::DragFloat3("Position##bone", &position.x, 0.005f)) {
+			animator->SetJointPosition(selected, position);
+		}
+		Math::Vector3 scale = local.scale;
+		if (ImGui::DragFloat3("Scale##bone", &scale.x, 0.01f)) {
+			animator->SetJointScale(selected, scale);
+		}
+		if (ImGui::Button("このボーンをアニメーションに戻す")) {
+			animator->ClearJointOverride(selected);
+		}
+		ImGui::SameLine();
+	}
+	if (ImGui::Button("全ボーンを戻す")) {
+		animator->ClearJointOverrides();
+	}
+	ImGui::TextWrapped("ポーズを付けるときは、上の Animation の Pause で止めると分かりやすいです。Timeline の「ボーン」でキーを打てます。");
 }
 
 // 保存欄: 変更あり表示・この状態を保存・保存を削除・変更を元に戻す
@@ -440,6 +525,9 @@ void DrawObjectInspector(EditorObject& e) {
 	}
 	if (e.getTexture && e.setTexture && ImGui::CollapsingHeader("Texture", ImGuiTreeNodeFlags_DefaultOpen)) {
 		DrawTextureField(e);
+	}
+	if (e.animator && ImGui::CollapsingHeader("Bones")) {
+		DrawBonesSection(e);
 	}
 	if (HasSavableValues(e)) {
 		DrawSaveSection(e);
@@ -575,6 +663,25 @@ void DrawGizmo(EditorObject& e, const Camera& camera, float minX, float minY, fl
 	}
 	dl->AddCircleFilled(originScreen, 4.0f, IM_COL32(240, 240, 240, 255));
 	dl->AddText(ImVec2(originScreen.x + 8.0f, originScreen.y + 6.0f), IM_COL32(240, 240, 240, 220), e.name.c_str());
+
+	// 選択中のボーン（親ボーンとの線＋丸）
+	if (e.animator) {
+		const std::string& bone = SelectedBone(e.name);
+		const Skeleton& skeleton = e.animator->GetSkeleton();
+		auto it = skeleton.jointMap.find(bone);
+		if (!bone.empty() && it != skeleton.jointMap.end()) {
+			ImVec2 boneScreen;
+			if (project(e.animator->GetJointWorldPosition(bone), boneScreen)) {
+				const std::optional<int32_t>& parent = skeleton.joints[it->second].parent;
+				ImVec2 parentScreen;
+				if (parent && project(e.animator->GetJointWorldPosition(skeleton.joints[*parent].name), parentScreen)) {
+					dl->AddLine(parentScreen, boneScreen, IM_COL32(255, 200, 60, 200), 2.0f);
+				}
+				dl->AddCircle(boneScreen, 7.0f, IM_COL32(255, 200, 60, 255), 16, 2.0f);
+				dl->AddText(ImVec2(boneScreen.x + 9.0f, boneScreen.y - 8.0f), IM_COL32(255, 200, 60, 255), bone.c_str());
+			}
+		}
+	}
 	dl->PopClipRect();
 #else
 	(void)e; (void)camera; (void)minX; (void)minY; (void)maxX; (void)maxY;

@@ -60,6 +60,9 @@ struct EditorObject {
 
 	// Inspector の最後に足す独自の項目
 	std::function<void()> drawExtra;
+
+	// ボーンを持つオブジェクト（Animator）なら設定される。Inspector の Bones 欄・Timeline のボーンのキーに使う
+	Animator* animator = nullptr;
 };
 
 // --- 登録（シーンの ImGuiDraw から毎フレーム呼ぶ）---
@@ -148,5 +151,10 @@ std::string ToTextureName(const std::string& resourcePath);
 /// 画像ファイルか（拡張子で判定）。
 /// </summary>
 bool IsImagePath(const std::string& path);
+
+/// <summary>
+/// オブジェクトごとに選択中のボーン名（Inspector の Bones 欄と Timeline で共有。未選択なら空）。
+/// </summary>
+std::string& SelectedBone(const std::string& objectName);
 
 } // namespace TuboEngine::Editor

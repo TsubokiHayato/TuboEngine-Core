@@ -1,6 +1,7 @@
 #include "EditorTimeline.h"
 #include "EditorObjects.h"
 #include "KeyframeClip.h"
+#include "Animator.h"
 #ifdef USE_IMGUI
 #include "externals/imgui/imgui.h"
 #endif // USE_IMGUI
@@ -38,6 +39,7 @@ struct TimelineState {
 	bool keyRotation = true;
 	bool keyScale = true;
 	bool keyColor = false;
+	bool keyBone = true; // 選択中のボーン（Animator のみ）
 	Easing::Type newKeyEase = Easing::Type::InOutSine;
 	// 右クリックしたキー
 	int popupTrack = -1;
@@ -59,12 +61,17 @@ std::string SafeFileName(const std::string& name) {
 	return out;
 }
 
-const char* PropertyLabel(const std::string& property) {
+std::string PropertyLabel(const std::string& property) {
 	if (property == "position") return "位置";
 	if (property == "rotation") return "回転";
 	if (property == "scale") return "拡縮";
 	if (property == "color") return "色";
-	return property.c_str();
+	std::string joint, component;
+	if (ParseBoneTrackName(property, joint, component)) {
+		const char* c = component == "rotation" ? "回転" : component == "position" ? "位置" : "拡縮";
+		return joint + " " + c;
+	}
+	return property;
 }
 
 // オブジェクトの今の値を取り出す（そのプロパティを持っていなければ false）
@@ -74,6 +81,14 @@ bool ReadProperty(const EditorObject& e, const std::string& property, Math::Vect
 	if (property == "rotation" && e.getRotation) { from3(e.getRotation()); return true; }
 	if (property == "scale" && e.getScale) { from3(e.getScale()); return true; }
 	if (property == "color" && e.getColor) { out = e.getColor(); return true; }
+	std::string joint, component;
+	QuaternionTransform local;
+	if (e.animator && ParseBoneTrackName(property, joint, component) && e.animator->GetJointLocal(joint, local)) {
+		if (component == "rotation") out = {local.rotate.x, local.rotate.y, local.rotate.z, local.rotate.w};
+		else if (component == "position") from3(local.translate);
+		else from3(local.scale);
+		return true;
+	}
 	return false;
 }
 
@@ -87,6 +102,25 @@ void ApplyClip(EditorObject& e, const KeyframeClip& clip, float time) {
 		else if (t.property == "rotation" && e.setRotation) e.setRotation(v3);
 		else if (t.property == "scale" && e.setScale) e.setScale(v3);
 		else if (t.property == "color" && e.setColor) e.setColor(v);
+		else if (e.animator) {
+			std::string joint, component;
+			if (ParseBoneTrackName(t.property, joint, component)) {
+				if (component == "rotation") e.animator->SetJointRotation(joint, {v.x, v.y, v.z, v.w});
+				else if (component == "position") e.animator->SetJointPosition(joint, v3);
+				else if (component == "scale") e.animator->SetJointScale(joint, v3);
+			}
+		}
+	}
+}
+
+// ボーン1本分（位置・回転・拡縮）のキーを打つ
+void InsertBoneKeys(EditorObject& e, KeyframeClip& clip, const std::string& joint, float time, Easing::Type ease) {
+	for (const char* component : {"rotation", "position", "scale"}) {
+		const std::string property = BoneTrackName(joint, component);
+		Math::Vector4 v;
+		if (ReadProperty(e, property, v)) {
+			clip.SetKey(property, time, v, ease);
+		}
 	}
 }
 
@@ -98,6 +132,10 @@ void InsertKeys(EditorObject& e, KeyframeClip& clip, TimelineState& s) {
 		if (enabled && ReadProperty(e, property, v)) {
 			clip.SetKey(property, s.time, v, s.newKeyEase);
 		}
+	}
+	const std::string& bone = SelectedBone(e.name);
+	if (e.animator && s.keyBone && !bone.empty()) {
+		InsertBoneKeys(e, clip, bone, s.time, s.newKeyEase);
 	}
 }
 
@@ -184,6 +222,12 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 	if (target->getRotation) { ImGui::Checkbox("回転", &s.keyRotation); ImGui::SameLine(); }
 	if (target->getScale) { ImGui::Checkbox("拡縮", &s.keyScale); ImGui::SameLine(); }
 	if (target->getColor) { ImGui::Checkbox("色", &s.keyColor); ImGui::SameLine(); }
+	if (target->animator) {
+		const std::string& bone = SelectedBone(target->name);
+		const std::string label = "ボーン: " + (bone.empty() ? std::string("(Inspector の Bones で選択)") : bone);
+		ImGui::Checkbox(label.c_str(), &s.keyBone);
+		ImGui::SameLine();
+	}
 	int ease = static_cast<int>(s.newKeyEase);
 	ImGui::SetNextItemWidth(120.0f);
 	if (ImGui::Combo("補間", &ease, Easing::Names(), static_cast<int>(Easing::Type::Count))) s.newKeyEase = static_cast<Easing::Type>(ease);
@@ -191,6 +235,19 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 	const bool timelineActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
 	if (ImGui::Button("キーを打つ (I)") || (timelineActive && !io.WantTextInput && ImGui::IsKeyPressed(ImGuiKey_I, false))) {
 		InsertKeys(*target, clip, s);
+	}
+
+	if (target->animator) {
+		const std::vector<std::string> overridden = target->animator->GetOverriddenJointNames();
+		if (overridden.empty()) ImGui::BeginDisabled();
+		char poseLabel[64];
+		std::snprintf(poseLabel, sizeof(poseLabel), "ポーズ全体のキー (上書き中 %zu 本)", overridden.size());
+		if (ImGui::Button(poseLabel)) {
+			for (const std::string& joint : overridden) {
+				InsertBoneKeys(*target, clip, joint, s.time, s.newKeyEase);
+			}
+		}
+		if (overridden.empty()) ImGui::EndDisabled();
 	}
 
 	// --- 2段目: 保存 / 読み込み ---
@@ -239,7 +296,7 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 	s.time = std::clamp(s.time, 0.0f, clip.length);
 
 	// --- タイムライン本体（左: トラック名 / 右: 目盛りと ◆）---
-	const float labelWidth = 90.0f;
+	const float labelWidth = 170.0f;
 	const float rulerHeight = 22.0f;
 	const float rowHeight = 22.0f;
 	const int rows = (std::max)(static_cast<int>(clip.tracks.size()), 1);
@@ -283,7 +340,13 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 		if (ti % 2 == 1) {
 			dl->AddRectFilled(ImVec2(canvasPos.x, rowTop), ImVec2(canvasPos.x + canvasSize.x, rowTop + rowHeight), IM_COL32(38, 38, 38, 255));
 		}
-		dl->AddText(ImVec2(canvasPos.x + 6.0f, cy - ImGui::GetFontSize() * 0.5f), IM_COL32(210, 210, 210, 255), PropertyLabel(track.property));
+		{
+			// 長いボーン名は欄の幅で切る
+			const std::string label = PropertyLabel(track.property);
+			dl->PushClipRect(ImVec2(canvasPos.x, rowTop), ImVec2(canvasPos.x + labelWidth, rowTop + rowHeight), true);
+			dl->AddText(ImVec2(canvasPos.x + 6.0f, cy - ImGui::GetFontSize() * 0.5f), IM_COL32(210, 210, 210, 255), label.c_str());
+			dl->PopClipRect();
+		}
 		for (int ki = 0; ki < static_cast<int>(track.keys.size()); ++ki) {
 			const float x = timeToX(track.keys[ki].time);
 			const float r = 6.0f;
@@ -395,7 +458,7 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 		Keyframe& key = track.keys[s.selectedKey];
 		ImGui::SeparatorText("選択中のキー");
 		ImGui::BeginGroup();
-		ImGui::Text("%s  #%d", PropertyLabel(track.property), s.selectedKey);
+		ImGui::Text("%s  #%d", PropertyLabel(track.property).c_str(), s.selectedKey);
 		ImGui::SetNextItemWidth(120.0f);
 		if (ImGui::DragFloat("時間##key", &key.time, 0.01f, 0.0f, clip.length, "%.3f s")) {
 			track.Sort();
@@ -406,6 +469,17 @@ void DrawTimelineWindow(bool* open, EditorObject* target) {
 				Math::Vector3 deg{key.value.x * kRadToDeg, key.value.y * kRadToDeg, key.value.z * kRadToDeg};
 				if (ImGui::DragFloat3("値 (deg)", &deg.x, 0.5f)) {
 					key.value = {deg.x / kRadToDeg, deg.y / kRadToDeg, deg.z / kRadToDeg, 0.0f};
+					timeChanged = true;
+				}
+			} else if (std::string joint, component; ParseBoneTrackName(track.property, joint, component) && component == "rotation") {
+				// ボーンの回転はクォータニオン。度（Z → Y → X）に直して編集する
+				const Math::Quaternion q{key.value.x, key.value.y, key.value.z, key.value.w};
+				const Math::Vector3 r = q.ToEuler();
+				Math::Vector3 deg{r.x * kRadToDeg, r.y * kRadToDeg, r.z * kRadToDeg};
+				if (ImGui::DragFloat3("値 (deg)", &deg.x, 0.5f)) {
+					const float hx = deg.x / kRadToDeg * 0.5f, hy = deg.y / kRadToDeg * 0.5f, hz = deg.z / kRadToDeg * 0.5f;
+					const float cr = std::cos(hx), sr = std::sin(hx), cp = std::cos(hy), sp = std::sin(hy), cy = std::cos(hz), sy = std::sin(hz);
+					key.value = {sr * cp * cy - cr * sp * sy, cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy, cr * cp * cy + sr * sp * sy};
 					timeChanged = true;
 				}
 			} else if (track.property == "color") {

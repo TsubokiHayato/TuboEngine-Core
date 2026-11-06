@@ -1,4 +1,5 @@
 #include "KeyframeClip.h"
+#include "Quaternion.h"
 #include "Animator.h"
 #include "JsonManager.h"
 #include "Object3d.h"
@@ -28,7 +29,29 @@ namespace {
 constexpr float kSameTime = 1.0f / 240.0f;
 
 Math::Vector4 Lerp4(const Math::Vector4& a, const Math::Vector4& b, float t) { return a + (b - a) * t; }
+
+// クォータニオンとして（球面補間で）補間するトラックか
+bool IsQuaternionTrack(const std::string& property) {
+	std::string joint, component;
+	return ParseBoneTrackName(property, joint, component) && component == "rotation";
+}
 } // namespace
+
+std::string BoneTrackName(const std::string& jointName, const std::string& component) { return "bone:" + jointName + "/" + component; }
+
+bool ParseBoneTrackName(const std::string& property, std::string& jointName, std::string& component) {
+	const std::string prefix = "bone:";
+	if (property.compare(0, prefix.size(), prefix) != 0) {
+		return false;
+	}
+	const size_t slash = property.rfind('/');
+	if (slash == std::string::npos || slash <= prefix.size()) {
+		return false;
+	}
+	jointName = property.substr(prefix.size(), slash - prefix.size());
+	component = property.substr(slash + 1);
+	return true;
+}
 
 // -----------------------------------------------------------------------------
 // KeyframeTrack
@@ -51,7 +74,14 @@ bool KeyframeTrack::Evaluate(float time, Math::Vector4& out) const {
 	const Keyframe& a = *(next - 1);
 	const float span = b.time - a.time;
 	const float t = span > 0.0f ? (time - a.time) / span : 1.0f;
-	out = Lerp4(a.value, b.value, Easing::Apply(a.ease, t));
+	const float e = Easing::Apply(a.ease, t);
+	if (IsQuaternionTrack(property)) {
+		// ボーンの回転は球面補間（線形補間だと途中で縮んで形が崩れる）
+		const Math::Quaternion q = Math::Quaternion::Slerp({a.value.x, a.value.y, a.value.z, a.value.w}, {b.value.x, b.value.y, b.value.z, b.value.w}, e);
+		out = {q.x, q.y, q.z, q.w};
+	} else {
+		out = Lerp4(a.value, b.value, e);
+	}
 	return true;
 }
 
@@ -225,6 +255,16 @@ void KeyframePlayer::Apply(Animator* animator) const {
 	if (Evaluate("rotation", v)) animator->SetRotation({v.x, v.y, v.z});
 	if (Evaluate("scale", v)) animator->SetScale({v.x, v.y, v.z});
 	if (Evaluate("color", v)) animator->SetModelColor(v);
+	// ボーンのトラック
+	for (const KeyframeTrack& track : clip_->tracks) {
+		std::string joint, component;
+		if (!ParseBoneTrackName(track.property, joint, component) || !track.Evaluate(time_, v)) {
+			continue;
+		}
+		if (component == "rotation") animator->SetJointRotation(joint, {v.x, v.y, v.z, v.w});
+		else if (component == "position") animator->SetJointPosition(joint, {v.x, v.y, v.z});
+		else if (component == "scale") animator->SetJointScale(joint, {v.x, v.y, v.z});
+	}
 }
 
 void KeyframePlayer::Apply(Sprite* sprite) const {

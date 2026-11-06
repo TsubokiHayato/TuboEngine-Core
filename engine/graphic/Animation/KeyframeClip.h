@@ -30,9 +30,20 @@ class TextObject;
 //    player.Apply(door_.get());   // Object3d / Animator / Sprite / TextObject
 //
 //  プロパティ名: "position" / "rotation" / "scale"（Vector3）, "color"（Vector4）
+//    ボーン（Animator のみ）: "bone:<ボーン名>/position" / "bone:<ボーン名>/rotation"（クォータニオン x,y,z,w。球面補間）/ "bone:<ボーン名>/scale"
+//    ボーンの値はローカル（親ボーン基準）。キーを打ったボーンだけアニメーションより優先される。
 //    2D は position の x,y を使う。Sprite は rotation の z を回転、scale の x,y をサイズとして、
 //    TextObject は scale の x を拡大率として使う。
 // =============================================================================
+
+/// <summary>
+/// ボーンのトラック名を作る（component は "position" / "rotation" / "scale"）。
+/// </summary>
+std::string BoneTrackName(const std::string& jointName, const std::string& component);
+/// <summary>
+/// ボーンのトラック名を分解する。ボーンのトラックでなければ false。
+/// </summary>
+bool ParseBoneTrackName(const std::string& property, std::string& jointName, std::string& component);
 
 /// <summary>
 /// キー1個（時間と値）。ease はこのキーから「次のキー」へ向かう時の補間方法。

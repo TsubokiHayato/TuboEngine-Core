@@ -90,6 +90,18 @@ void TuboEngine::Animator::Update(float deltaTime) {
 		ApplyAnimationBlend(skeleton_, *previous_, previousTime_, *current_, animationTime_, weight);
 	} else if (duration > 0.0f) {
 		ApplyAnimation(skeleton_, *current_, animationTime_);
+	} else if (!jointOverrides_.empty()) {
+		// アニメーションが無いモデルは、上書きを外した時に戻るようレストポーズから始める
+		for (Joint& joint : skeleton_.joints) {
+			joint.transform = joint.restTransform;
+		}
+	}
+	// ボーンの上書き（Timeline のボーンのキーなど）はアニメーションより優先
+	for (const auto& [index, ov] : jointOverrides_) {
+		Joint& joint = skeleton_.joints[index];
+		if (ov.position) joint.transform.translate = *ov.position;
+		if (ov.rotation) joint.transform.rotate = *ov.rotation;
+		if (ov.scale) joint.transform.scale = *ov.scale;
 	}
 	UpdateSkeleton(skeleton_);
 
@@ -296,4 +308,53 @@ TuboEngine::Math::Matrix4x4 TuboEngine::Animator::GetJointWorldMatrix(const std:
 TuboEngine::Math::Vector3 TuboEngine::Animator::GetJointWorldPosition(const std::string& jointName) const {
 	const TuboEngine::Math::Matrix4x4 m = GetJointWorldMatrix(jointName);
 	return {m.m[3][0], m.m[3][1], m.m[3][2]};
+}
+
+TuboEngine::Animator::JointOverride* TuboEngine::Animator::OverrideFor(const std::string& jointName) {
+	auto it = skeleton_.jointMap.find(jointName);
+	if (it == skeleton_.jointMap.end()) {
+		return nullptr;
+	}
+	return &jointOverrides_[it->second];
+}
+
+void TuboEngine::Animator::SetJointPosition(const std::string& jointName, const TuboEngine::Math::Vector3& position) {
+	if (JointOverride* ov = OverrideFor(jointName)) ov->position = position;
+}
+
+void TuboEngine::Animator::SetJointRotation(const std::string& jointName, const TuboEngine::Math::Quaternion& rotation) {
+	if (JointOverride* ov = OverrideFor(jointName)) ov->rotation = rotation;
+}
+
+void TuboEngine::Animator::SetJointScale(const std::string& jointName, const TuboEngine::Math::Vector3& scale) {
+	if (JointOverride* ov = OverrideFor(jointName)) ov->scale = scale;
+}
+
+void TuboEngine::Animator::ClearJointOverride(const std::string& jointName) {
+	auto it = skeleton_.jointMap.find(jointName);
+	if (it != skeleton_.jointMap.end()) {
+		jointOverrides_.erase(it->second);
+	}
+}
+
+bool TuboEngine::Animator::IsJointOverridden(const std::string& jointName) const {
+	auto it = skeleton_.jointMap.find(jointName);
+	return it != skeleton_.jointMap.end() && jointOverrides_.contains(it->second);
+}
+
+std::vector<std::string> TuboEngine::Animator::GetOverriddenJointNames() const {
+	std::vector<std::string> names;
+	for (const auto& [index, ov] : jointOverrides_) {
+		names.push_back(skeleton_.joints[index].name);
+	}
+	return names;
+}
+
+bool TuboEngine::Animator::GetJointLocal(const std::string& jointName, QuaternionTransform& out) const {
+	auto it = skeleton_.jointMap.find(jointName);
+	if (it == skeleton_.jointMap.end()) {
+		return false;
+	}
+	out = skeleton_.joints[it->second].transform;
+	return true;
 }
