@@ -105,6 +105,11 @@ public:
 	bool GetJoystickStatePrevious(int32_t stickNo, DIJOYSTATE2& out) const;
 	bool GetJoystickState(int32_t stickNo, XINPUT_STATE& out) const;
 	bool GetJoystickStatePrevious(int32_t stickNo, XINPUT_STATE& out) const;
+	/// <summary>
+	/// スティックのデッドゾーンを設定する（中心からこの値未満の入力は 0 になる。既定 0 = 無効）。
+	/// XInput は 0〜32767（推奨: 左 XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE / 右 XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE）、
+	/// DirectInput は 0〜32767（中心 32767 からの距離）。
+	/// </summary>
 	void SetJoystickDeadZone(int32_t stickNo, int32_t deadZoneL, int32_t deadZoneR);
 	size_t GetNumberOfJoysticks() const;
 	bool IsPadConnected(int32_t stickNo) const;

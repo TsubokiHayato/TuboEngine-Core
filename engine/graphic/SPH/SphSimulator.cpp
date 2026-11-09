@@ -188,7 +188,11 @@ static void HelpMarker(const char* desc) {
 
 void SphSimulator::DrawImGui() {
 #ifdef USE_IMGUI
-    ImGui::Begin("SPH シミュレーター (GPU)");
+    // BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+    if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel("SPH シミュレーター (GPU)")) {
+        TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+        return;
+    }
     ImGui::Text("粒子数 : %d  [GPU Compute]", params_.particleCount);
 
     // ---- プリセット (ワンクリックで質感を切替) ----
@@ -381,7 +385,7 @@ void SphSimulator::DrawImGui() {
         ImGui::TextDisabled("最大 %d 個", kMaxSdfShapes);
     }
 
-    ImGui::End();
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif
 }
 

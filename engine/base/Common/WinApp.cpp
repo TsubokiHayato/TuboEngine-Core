@@ -28,9 +28,17 @@ namespace TuboEngine {
 
 WinApp* WinApp::instance = nullptr; // シングルトンインスタンス
 void WinApp::Finalize()
-{	
-	CloseWindow(hwnd);
+{
+	// カーソルの固定を解除してからウィンドウを破棄する（CloseWindow は最小化するだけ）
+	::ClipCursor(nullptr);
+	if (hwnd && ::IsWindow(hwnd)) {
+		::DestroyWindow(hwnd);
+	}
+	hwnd = nullptr;
+	::UnregisterClass(wc.lpszClassName, wc.hInstance);
 	CoUninitialize();
+	// Initialize の timeBeginPeriod(1) と対にする
+	timeEndPeriod(1);
 	delete instance;
 	instance = nullptr;
 }

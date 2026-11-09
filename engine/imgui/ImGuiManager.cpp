@@ -144,10 +144,11 @@ void ImGuiManager::Finalize() {
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
-	delete instance;
-	instance = nullptr;
 
 #endif // USE_IMGUI
+	// ImGui 無しのビルドでも GetInstance で作られるので、ここで必ず解放する
+	delete instance;
+	instance = nullptr;
 }
 
 void ImGuiManager::Begin() {
@@ -172,10 +173,11 @@ void ImGuiManager::Begin() {
 		}
 		// Ctrl+Shift+P: 一時停止/再開、Ctrl+Alt+P: 1フレーム進める
 		const ImGuiIO& io = ImGui::GetIO();
-		if (io.KeyCtrl && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+		// 修飾キーは厳密に判定する（Ctrl+Shift+Alt+P で両方反応しないように）
+		if (io.KeyCtrl && io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
 			paused_ = !paused_;
 		}
-		if (io.KeyCtrl && io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
+		if (io.KeyCtrl && io.KeyAlt && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_P, false)) {
 			paused_ = true;
 			stepRequested_ = true;
 		}

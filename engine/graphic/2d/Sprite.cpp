@@ -1,4 +1,5 @@
 #include "Sprite.h"
+#include "ImGuiManager.h"
 #include"SpriteCommon.h"
 #include"Matrix.h"
 #include"TextureManager.h"
@@ -243,7 +244,11 @@ void TuboEngine::Sprite::DrawImGui(const char* windowName) {
 #ifdef USE_IMGUI
 
 	const char* windowName_ = windowName;
-	ImGui::Begin(windowName_);
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel(windowName_)) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
     ImGui::Separator();
     ImGui::Text("Sprite ImGui コントロール"); // セクションタイトル
     // 位置
@@ -297,7 +302,7 @@ void TuboEngine::Sprite::DrawImGui(const char* windowName) {
         SetColor(color);
     }
     // コメント: ここでSpriteの全てのプロパティをImGuiで操作できます
-	ImGui::End(); // ウィンドウ終了
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel(); // ウィンドウ終了
 
 	#endif // USE_IMGUI
 }

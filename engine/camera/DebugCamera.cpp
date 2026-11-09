@@ -1,4 +1,5 @@
 #include "DebugCamera.h"
+#include "ImGuiManager.h"
 #include "Input.h"
 #include "Matrix.h"
 #include "externals/imgui/imgui.h"
@@ -79,7 +80,11 @@ void DebugCamera::Update(Camera* target) {
 
 void DebugCamera::DrawImGui() {
 #ifdef USE_IMGUI
-	ImGui::Begin("DebugCamera");
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel("DebugCamera")) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
 	bool active = active_;
 	if (ImGui::Checkbox("Active (F2)", &active)) {
 		SetActive(active);
@@ -93,7 +98,7 @@ void DebugCamera::DrawImGui() {
 	ImGui::DragFloat("RotateSpeed", &rotateSpeed_, 0.0001f, 0.0f, 0.05f);
 	ImGui::DragFloat("PanSpeed", &panSpeed_, 0.001f, 0.0f, 0.5f);
 	ImGui::DragFloat("WheelSpeed", &wheelSpeed_, 0.001f, 0.0f, 0.5f);
-	ImGui::End();
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 

@@ -137,6 +137,5 @@ private:
 
 	// 定数
 	static constexpr uint32_t kNumMaxInstance = 1024;
-	static constexpr float kDeltaTime = 1.0f / 60.0f;
 	bool isBillBoard = true;
 };

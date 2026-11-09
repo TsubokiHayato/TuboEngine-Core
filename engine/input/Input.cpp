@@ -7,6 +7,22 @@
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "xinput.lib")
 
+namespace {
+// スティックの (x, y) が中心から deadZone 未満なら中心に戻す（円形のデッドゾーン）
+template <typename T>
+void ApplyDeadZone(T& x, T& y, int32_t deadZone, LONG center = 0) {
+	if (deadZone <= 0) return;
+	const double dx = static_cast<double>(x) - center;
+	const double dy = static_cast<double>(y) - center;
+	if (dx * dx + dy * dy < static_cast<double>(deadZone) * deadZone) {
+		x = static_cast<T>(center);
+		y = static_cast<T>(center);
+	}
+}
+// DirectInput の軸は範囲を設定していないので 0〜65535（中心 32767）
+constexpr LONG kDirectInputAxisCenter = 32767;
+} // namespace
+
 TuboEngine::Input* TuboEngine::Input::instance = nullptr;
 TuboEngine::Input* TuboEngine::Input::GetInstance() {
 	if (instance == nullptr) {
@@ -89,6 +105,9 @@ void TuboEngine::Input::Update() {
 			if (SUCCEEDED(hr)) {
 				hr = joystick.device_->GetDeviceState(sizeof(DIJOYSTATE2), &joystick.state_.directInput_);
 				joystick.isConnected_ = SUCCEEDED(hr);
+				DIJOYSTATE2& di = joystick.state_.directInput_;
+				ApplyDeadZone(di.lX, di.lY, joystick.deadZoneL_, kDirectInputAxisCenter);
+				ApplyDeadZone(di.lRx, di.lRy, joystick.deadZoneR_, kDirectInputAxisCenter);
 			} else {
 				joystick.isConnected_ = false;
 			}
@@ -96,6 +115,9 @@ void TuboEngine::Input::Update() {
 			// devJoysticks_ の番号ではなく、XInput のコントローラー番号(0〜3)で取得する
 			DWORD result = XInputGetState(static_cast<DWORD>(joystick.xinputIndex_), &joystick.state_.xInput_);
 			joystick.isConnected_ = (result == ERROR_SUCCESS);
+			XINPUT_GAMEPAD& gp = joystick.state_.xInput_.Gamepad;
+			ApplyDeadZone(gp.sThumbLX, gp.sThumbLY, joystick.deadZoneL_);
+			ApplyDeadZone(gp.sThumbRX, gp.sThumbRY, joystick.deadZoneR_);
 		}
 	}
 
@@ -139,7 +161,11 @@ void TuboEngine::Input::ShowInputDebugWindow() {
 #ifdef USE_IMGUI
 	Input* input = Input::GetInstance();
 
-	ImGui::Begin("Input Debug");
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel("Input Debug")) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
 
 	// キーボード
 	ImGui::Text("Keyboard");
@@ -195,7 +221,7 @@ void TuboEngine::Input::ShowInputDebugWindow() {
 		}
 	}
 
-	ImGui::End();
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 
 	#endif // USE_IMGUI
 }

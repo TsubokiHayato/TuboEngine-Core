@@ -1,4 +1,5 @@
 #include "Object3d.h"
+#include "ImGuiManager.h"
 #include "Camera.h"
 #include "Matrix.h"
 #include "Model.h"
@@ -270,7 +271,11 @@ void TuboEngine::Object3d::Draw() {
 
 void TuboEngine::Object3d::DrawImGui(const char* windowName) {
 #ifdef USE_IMGUI
-    ImGui::Begin(windowName);
+    // BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+    if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel(windowName)) {
+        TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+        return;
+    }
 
     ImGui::Separator();
     ImGui::Text("Object3d ImGui コントロール");
@@ -366,7 +371,7 @@ void TuboEngine::Object3d::DrawImGui(const char* windowName) {
             model_->SetModelEnvironmentCoefficient(envCoef);
         }
     }
-    ImGui::End();
+    TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 

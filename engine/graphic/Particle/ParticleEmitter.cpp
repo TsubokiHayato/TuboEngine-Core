@@ -7,6 +7,7 @@
 #include <random>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include "GameTime.h"
 
 // コンストラクタ
 	/// <summary>
@@ -53,7 +54,7 @@ TuboEngine::ParticleEmitter::ParticleEmitter(
 void TuboEngine::ParticleEmitter::Update() {
 	if (!repeat_) return; // 繰り返し発生させない場合は何もしない
 
-	elapsedTime_ += 1.0f / 60.0f; // フレーム単位の経過時間を加算
+	elapsedTime_ += TuboEngine::Time::DeltaTime(); // 経過時間を加算（一時停止中は 0）
 
 	// 経過時間が発生頻度を超えたらパーティクルを発生させる
 	if (elapsedTime_ >= frequency_) {

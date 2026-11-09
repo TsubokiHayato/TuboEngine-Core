@@ -1,6 +1,7 @@
 #include "VHSEffect.h"
 #include "DirectXCommon.h"
 #include "ImGuiManager.h"
+#include "GameTime.h"
 
 VHSEffect::VHSEffect() {
     pso_ = std::make_unique<VHSPSO>();
@@ -27,7 +28,8 @@ void VHSEffect::Initialize() {
 }
 
 void VHSEffect::Update() {
-    time_ += 1.0f / 60.0f;
+    // ノイズの動きは一時停止中も止めない
+    time_ += TuboEngine::Time::UnscaledDeltaTime();
     params_->time = time_;
 }
 

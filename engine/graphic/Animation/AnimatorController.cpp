@@ -1,4 +1,5 @@
 #include "AnimatorController.h"
+#include "ImGuiManager.h"
 #include "Animator.h"
 #include "GameTime.h"
 #include "JsonManager.h"
@@ -360,7 +361,11 @@ bool AnimatorController::SaveToJson(const std::string& path) const {
 // -----------------------------------------------------------------------------
 void AnimatorController::DrawImGui(const char* windowName) {
 #ifdef USE_IMGUI
-	ImGui::Begin(windowName);
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel(windowName)) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
 	if (ImGui::CollapsingHeader("Animator Controller", ImGuiTreeNodeFlags_DefaultOpen)) {
 		ImGui::Text("State: %s  (%.2f s)", currentState_.empty() ? "(none)" : currentState_.c_str(), stateTime_);
 
@@ -406,7 +411,7 @@ void AnimatorController::DrawImGui(const char* windowName) {
 			ImGui::TreePop();
 		}
 	}
-	ImGui::End();
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #else
 	(void)windowName;
 #endif // USE_IMGUI

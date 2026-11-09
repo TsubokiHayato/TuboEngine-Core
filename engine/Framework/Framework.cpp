@@ -3,8 +3,36 @@
 #include <dxcapi.h>
 #include "TextManager.h"
 #include "Object3d.h"
+#include "Logger.h"
+#include <filesystem>
+
+namespace {
+// 作業フォルダに Resources が無く、exe と同じフォルダにあれば、作業フォルダを exe の場所にする。
+// テクスチャ・モデル・シェーダ・音などは "Resources/..." の相対パスで読むので、
+// exe を直接（別の場所から）起動しても読み込めるようにする。
+void UseExeDirectoryIfResourcesMissing() {
+	std::error_code ec;
+	if (std::filesystem::exists("Resources", ec)) {
+		return;
+	}
+	wchar_t buffer[MAX_PATH] = {};
+	const DWORD length = GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+	if (length == 0 || length >= MAX_PATH) {
+		return;
+	}
+	const std::filesystem::path exeDir = std::filesystem::path(buffer).parent_path();
+	if (std::filesystem::exists(exeDir / "Resources", ec)) {
+		std::filesystem::current_path(exeDir, ec);
+		if (!ec) {
+			TuboEngine::Logger::Log("作業フォルダに Resources が無いので、exe のフォルダを作業フォルダにしました\n");
+		}
+	}
+}
+} // namespace
 
 void TuboEngine::Framework::Initialize() {
+
+	UseExeDirectoryIfResourcesMissing();
 
 	TuboEngine::WinApp::GetInstance()->Initialize();
 

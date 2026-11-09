@@ -9,6 +9,7 @@
 #include "TextureManager.h"
 #include "ParticleCommon.h"
 #include <numbers>
+#include "GameTime.h"
 
 /// <summary>
 /// デストラクタ: 動的確保とマップを解放
@@ -106,6 +107,8 @@ void Particle::Update() {
 
 	// スケール調整用の倍率を設定
 	constexpr float scaleMultiplier = 0.01f; // 必要に応じて調整
+	// 経過時間（エディタの一時停止中は 0）
+	const float deltaTime = TuboEngine::Time::DeltaTime();
 
 	// パーティクルの更新
 	for (auto& group : particleGroups) {
@@ -124,10 +127,10 @@ void Particle::Update() {
 		/*	particle.transform.scale.x = textureSize.x * scaleMultiplier;
 			particle.transform.scale.y = textureSize.y * scaleMultiplier;*/
 			// 位置の更新
-			particle.transform.translate = particle.transform.translate + (particle.velocity * kDeltaTime);
+			particle.transform.translate = particle.transform.translate + (particle.velocity * deltaTime);
 
 			// 経過時間を更新
-			particle.currentTime += kDeltaTime;
+			particle.currentTime += deltaTime;
 			// ワールド行列の計算
 			Matrix4x4 worldMatrix = Multiply(
 				billboardMatrix,

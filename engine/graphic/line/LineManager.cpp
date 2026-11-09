@@ -70,7 +70,11 @@ void TuboEngine::LineManager::Draw() {
 void TuboEngine::LineManager::DrawImGui() {
 
 #ifdef USE_IMGUI
-	ImGui::Begin("LineManager");
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel("LineManager")) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
   ImGui::Checkbox("Disable All", &disableAll_);
 	ImGui::Separator();
 	ImGui::Checkbox("Line", &isDrawLine_);
@@ -80,7 +84,7 @@ void TuboEngine::LineManager::DrawImGui() {
 	ImGui::SliderInt("Divisions", &gridDivisions_, 1, 512);
 	ImGui::Checkbox("Sphere", &isDrawSphere_);
 	ImGui::ColorEdit4("Color", &gridColor_.x);
-	ImGui::End();
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif //_USE_IMGUI
 }
 

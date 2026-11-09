@@ -201,7 +201,11 @@ void TuboEngine::Animator::DrawImGui(const char* windowName) {
 	object3d_->DrawImGui(windowName);
 
 	// 同じウィンドウにアニメーションの項目を追加する
-	ImGui::Begin(windowName);
+	// BeginPanel にすると Hierarchy / Window メニューから表示を切り替えられる
+	if (!TuboEngine::ImGuiManager::GetInstance()->BeginPanel(windowName)) {
+		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+		return;
+	}
 	ImGui::Separator();
 	ImGui::Text("Animation");
 	ImGui::Text("Name: %s%s", currentName_.c_str(), previous_ ? " (blending)" : "");
@@ -221,7 +225,7 @@ void TuboEngine::Animator::DrawImGui(const char* windowName) {
 		ImGui::SameLine();
 	}
 	ImGui::NewLine();
-	ImGui::End();
+	TuboEngine::ImGuiManager::GetInstance()->EndPanel();
 #endif // USE_IMGUI
 }
 
