@@ -288,6 +288,9 @@
     <ClCompile Include="..\engine\input\Input.cpp">
       <Filter>projects\engine\input</Filter>
     </ClCompile>
+    <ClCompile Include="..\engine\input\SliderInput.cpp">
+      <Filter>projects\engine\input</Filter>
+    </ClCompile>
     <ClCompile Include="..\engine\base\Utilities\Logger.cpp">
       <Filter>projects\engine\base\Utilities</Filter>
     </ClCompile>
@@ -612,6 +615,9 @@
       <Filter>projects\engine\base\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\input\Input.h">
+      <Filter>projects\engine\input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\engine\input\SliderInput.h">
       <Filter>projects\engine\input</Filter>
     </ClInclude>
     <ClInclude Include="..\engine\base\Utilities\Logger.h">

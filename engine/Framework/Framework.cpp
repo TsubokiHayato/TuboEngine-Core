@@ -4,6 +4,7 @@
 #include "TextManager.h"
 #include "Object3d.h"
 #include "Logger.h"
+#include "SliderInput.h"
 #include <filesystem>
 
 namespace {
@@ -75,6 +76,8 @@ void TuboEngine::Framework::Initialize() {
 
 	// 入力初期化
 	TuboEngine::Input::GetInstance()->Initialize(TuboEngine::WinApp::GetInstance()->GetHWND());
+	// マイコンの4スライダー（USBシリアル）。ポート未指定＝自動検出、未接続でもゲームは普通に動く
+	TuboEngine::SliderInput::GetInstance()->Initialize();
 
 	// オフスクリーンレンダリングの初期化
 	OffScreenRendering::GetInstance()->Initialize();
@@ -99,6 +102,7 @@ void TuboEngine::Framework::Update() {
 
 	// 入力の更新
 	TuboEngine::Input::GetInstance()->Update();
+	TuboEngine::SliderInput::GetInstance()->Update();
 
 	// マウスカーソルの固定（入力の後に行う：Esc / クリックでの切り替えを今フレームの入力で判定するため）
 	UpdateCursorLock();
@@ -138,6 +142,7 @@ void TuboEngine::Framework::Finalize() {
 #endif // USE_IMGUI
 
 	TuboEngine::Input::GetInstance()->Finalize();
+	TuboEngine::SliderInput::GetInstance()->Finalize();
 
 	// TextManagerの解放
 	TuboEngine::TextManager::DestroyInstance();
@@ -285,6 +290,9 @@ void TuboEngine::Framework::ImguiPostDraw() {
 			ImGui::SliderInt("SpriteBlendNum", &spriteBlendModeNum, 0, 5);
 		}
 		TuboEngine::ImGuiManager::GetInstance()->EndPanel();
+
+		// スライダー（マイコン）の値・接続状態
+		TuboEngine::SliderInput::GetInstance()->ShowDebugWindow();
 	}
 
 	// 受付終了(Render)は常に呼ぶ（メニューバーを含むフレームを確定させるため）
